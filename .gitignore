@@ -1,6 +1,9 @@
 # Environnement et secrets — jamais commités
 .env
 
+# Réglages locaux Claude Code
+.claude/settings.local.json
+
 # Python
 __pycache__/
 *.py[cod]
