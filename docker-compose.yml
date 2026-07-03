@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: facturation
+      POSTGRES_USER: postgres
+      # Secrets fournis par .env (non commité), jamais en dur ici.
+      POSTGRES_PASSWORD: ${POSTGRES_SUPER_PASSWORD:?definir POSTGRES_SUPER_PASSWORD dans .env}
+      POSTGRES_MIGRATOR_PASSWORD: ${POSTGRES_MIGRATOR_PASSWORD:?definir POSTGRES_MIGRATOR_PASSWORD dans .env}
+      POSTGRES_APP_PASSWORD: ${POSTGRES_APP_PASSWORD:?definir POSTGRES_APP_PASSWORD dans .env}
+    ports:
+      # 5433 côté hôte : 5432 est déjà occupé par un autre projet local.
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # Exécuté uniquement à la première initialisation du volume.
+      - ./docker/postgres/init-roles.sh:/docker-entrypoint-initdb.d/10-init-roles.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d facturation"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+volumes:
+  pgdata:
