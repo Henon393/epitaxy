@@ -1,12 +1,14 @@
+import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.audit import record
 from app.db import get_current_tenant, get_db
 from app.identity import require_role
-from app.models import Customer, Role
+from app.models import AuditAction, Customer, Role
 from app.schemas import CustomerCreate, CustomerOut
 
 router = APIRouter(tags=["customers"])
@@ -34,4 +36,23 @@ def create_customer(payload: CustomerCreate, db: Annotated[Session, Depends(get_
     )
     db.add(customer)
     db.flush()
+    # Même transaction que la mutation : pas de customer créé sans sa ligne
+    # d'audit, ni l'inverse (fail-closed).
+    record(db, AuditAction.customer_created, target_type="customer", target_id=customer.id)
     return customer
+
+
+@router.delete(
+    "/customers/{customer_id}",
+    status_code=204,
+    dependencies=[Depends(require_role(Role.admin))],
+)
+def delete_customer(customer_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]) -> None:
+    customer = db.get(Customer, customer_id)
+    if customer is None:
+        # La RLS rend les clients des autres tenants invisibles : le 404
+        # vaut aussi bien pour « inexistant » que pour « pas à vous ».
+        raise HTTPException(status_code=404, detail="Client introuvable.")
+    db.delete(customer)
+    db.flush()
+    record(db, AuditAction.customer_deleted, target_type="customer", target_id=customer_id)

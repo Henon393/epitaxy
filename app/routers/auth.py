@@ -11,9 +11,10 @@ import uuid
 from fastapi import APIRouter, HTTPException, Request
 from sqlalchemy import select
 
+from app.audit import log_unattributed, record
 from app.config import get_settings
 from app.db import session_for_tenant
-from app.models import Role, Tenant, User
+from app.models import AuditAction, Role, Tenant, User
 from app.rate_limit import enforce_login_rate_limit
 from app.schemas import LoginRequest, RefreshRequest, SignupRequest, SignupResponse, TokenPair
 from app.security import (
@@ -71,23 +72,74 @@ def signup(payload: SignupRequest) -> SignupResponse:
 @router.post("/login", response_model=TokenPair)
 def login(payload: LoginRequest, request: Request) -> TokenPair:
     client_ip = request.client.host if request.client else "inconnu"
-    enforce_login_rate_limit(client_ip, payload.email)
-
     email = payload.email.strip().lower()
+
+    try:
+        enforce_login_rate_limit(client_ip, payload.email)
+    except HTTPException:
+        # Le tenant revendiqué n'est ni vérifié ni digne de confiance à ce
+        # stade : log applicatif, jamais audit_log.
+        log_unattributed(
+            AuditAction.login_rate_limited,
+            ip=client_ip,
+            email=email,
+            tenant_revendique=payload.tenant_id,
+        )
+        raise
+
+    # Les échecs sont audités DANS la session puis le 401 est levé APRÈS le
+    # commit du bloc with : lever dans le bloc annulerait la ligne d'audit.
+    succes = False
+    tenant_inconnu = False
     with session_for_tenant(payload.tenant_id) as session:
-        user = session.scalar(select(User).where(User.email == email))
-        found = user is not None and user.is_active
-
-        if not found:
-            # Anti-énumération par timing : payer le coût argon2 même quand
-            # l'utilisateur n'existe pas, pour un temps de réponse identique
-            # au cas « mauvais mot de passe ».
+        if session.get(Tenant, payload.tenant_id) is None:
+            # Tenant inexistant : parité de timing quand même, et pas de
+            # ligne d'audit (aucun tenant existant à qui la rattacher).
             verify_password(DUMMY_HASH, payload.password)
-            raise _invalid_credentials()
-        if not verify_password(user.password_hash, payload.password):
-            raise _invalid_credentials()
+            tenant_inconnu = True
+        else:
+            user = session.scalar(select(User).where(User.email == email))
+            if user is None or not user.is_active:
+                # Anti-énumération par timing : payer le coût argon2 même
+                # quand l'utilisateur n'existe pas, pour un temps de réponse
+                # identique au cas « mauvais mot de passe ».
+                verify_password(DUMMY_HASH, payload.password)
+                record(
+                    session,
+                    AuditAction.login_failed,
+                    actor_id=None,
+                    tenant_id=payload.tenant_id,
+                    metadata={"email": email, "ip": client_ip},
+                )
+            elif not verify_password(user.password_hash, payload.password):
+                record(
+                    session,
+                    AuditAction.login_failed,
+                    actor_id=user.id,
+                    tenant_id=payload.tenant_id,
+                    metadata={"email": email, "ip": client_ip},
+                )
+            else:
+                record(
+                    session,
+                    AuditAction.login_succeeded,
+                    actor_id=user.id,
+                    tenant_id=payload.tenant_id,
+                    metadata={"ip": client_ip},
+                )
+                user_id, role = user.id, user.role
+                succes = True
 
-        return _open_session(user.id, user.tenant_id, user.role)
+    if tenant_inconnu:
+        log_unattributed(
+            AuditAction.login_failed,
+            ip=client_ip,
+            email=email,
+            tenant_revendique=payload.tenant_id,
+        )
+    if not succes:
+        raise _invalid_credentials()
+    return _open_session(user_id, payload.tenant_id, role)
 
 
 @router.post("/refresh", response_model=TokenPair)
