@@ -10,6 +10,7 @@ Deux verrous complémentaires :
 
 import uuid
 from collections.abc import Iterator
+from contextlib import contextmanager
 from contextvars import ContextVar, Token
 
 from sqlalchemy import create_engine, text
@@ -44,14 +45,18 @@ engine = create_engine(get_settings().database_url, pool_pre_ping=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
 
 
-def get_db() -> Iterator[Session]:
-    """Fournit une session liée au tenant courant, une transaction par requête.
+@contextmanager
+def session_for_tenant(tenant_id: uuid.UUID) -> Iterator[Session]:
+    """Session liée à un tenant explicite, une transaction par usage.
 
     ``set_config(..., is_local => true)`` est l'équivalent paramétrable de
     ``SET LOCAL`` : le contexte tenant vit dans la transaction et disparaît
     avec elle — rien ne persiste sur la connexion rendue au pool.
+
+    Utilisé directement par signup/login, où le tenant vient de la
+    revendication du client : il ne sert que de périmètre de recherche RLS,
+    c'est argon2 qui authentifie.
     """
-    tenant_id = get_current_tenant()
     with SessionLocal() as session:
         session.execute(
             text("SELECT set_config('app.tenant_id', :tenant_id, true)"),
@@ -63,3 +68,9 @@ def get_db() -> Iterator[Session]:
         except Exception:
             session.rollback()
             raise
+
+
+def get_db() -> Iterator[Session]:
+    """Fournit une session liée au tenant courant (posé par le middleware)."""
+    with session_for_tenant(get_current_tenant()) as session:
+        yield session
