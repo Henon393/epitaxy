@@ -3,7 +3,7 @@ from starlette.responses import JSONResponse
 
 from app.db import MissingTenantContextError
 from app.middleware import TenantContextMiddleware
-from app.routers import auth, customers, users
+from app.routers import auth, company_profile, customers, invoices, users
 
 app = FastAPI(title="Facturation — Solution Compatible (apprentissage)")
 app.add_middleware(TenantContextMiddleware)
@@ -11,6 +11,8 @@ app.add_middleware(TenantContextMiddleware)
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(customers.router)
+app.include_router(company_profile.router)
+app.include_router(invoices.router)
 
 
 @app.exception_handler(MissingTenantContextError)
