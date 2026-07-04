@@ -14,6 +14,20 @@ class Settings(BaseSettings):
     # Pas de valeur par défaut : le secret vient de l'environnement.
     database_url: str
 
+    # Clé de signature des JWT (HS256). Aucun défaut : absente = échec au
+    # démarrage, jamais de clé de repli en dur dans le code.
+    jwt_secret: str
+
+    redis_url: str = "redis://localhost:6379/0"
+
+    # Tokens courts + refresh long révocable (famille en Redis).
+    access_token_ttl_seconds: int = 15 * 60
+    refresh_token_ttl_seconds: int = 7 * 24 * 3600
+
+    # Rate limiting du login : fenêtre fixe par (IP, email).
+    login_rate_limit_attempts: int = 5
+    login_rate_limit_window_seconds: int = 60
+
     # TODO(auth) : supprimer ce flag et la résolution par en-tête X-Tenant-Id
     # à l'étape auth — le tenant sera alors extrait du JWT vérifié.
     tenant_header_enabled: bool = False
