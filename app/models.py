@@ -10,6 +10,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    LargeBinary,
     Numeric,
     String,
     UniqueConstraint,
@@ -253,6 +254,30 @@ class InvoiceLine(Base):
     # ventilation ; None n'en alimente aucune. Toujours tester « is None ».
     vat_rate: Mapped[Decimal | None] = mapped_column(Numeric(4, 2), default=None)
     total_ht: Mapped[Decimal] = mapped_column(Numeric(12, 2))
+
+
+class InvoiceArtifact(Base):
+    """Artefact généré d'une facture émise (XML CII en 4b-1, PDF/A-3 en 4b-2).
+
+    Même régime d'inaltérabilité que audit_log : INSERT et SELECT seulement
+    pour app_user (REVOKE UPDATE/DELETE + policies RLS par commande, migration
+    0005). Le XML d'une facture émise ne se réécrit pas ; la régénération
+    après correction d'un bug de mapping passe par migrator, comme la purge
+    d'audit. La présence de l'artefact validé vaut « transmissible ».
+    """
+
+    __tablename__ = "invoice_artifacts"
+    __table_args__ = (
+        UniqueConstraint("invoice_id", "kind", name="uq_invoice_artifacts_invoice_kind"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("tenants.id"), index=True)
+    invoice_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("invoices.id"))
+    kind: Mapped[str] = mapped_column(String(20))
+    content: Mapped[bytes] = mapped_column(LargeBinary)
+    sha256: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class InvoiceCounter(Base):
