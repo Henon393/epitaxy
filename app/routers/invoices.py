@@ -16,6 +16,11 @@ from app.audit import record
 from app.cii import CII_XML_KIND, CiiValidationError, generate_and_validate
 from app.db import get_current_tenant, get_db
 from app.identity import require_role
+from app.invoice_pdf import (
+    FACTURX_PDF_KIND,
+    FacturxStructureError,
+    assemble_facturx,
+)
 from app.invoicing import MENTION_293B, compute_totals, line_total_ht, next_invoice_number
 from app.models import (
     AuditAction,
@@ -28,7 +33,9 @@ from app.models import (
     Role,
     VatRegime,
 )
+from app.pdf_render import PdfRenderError
 from app.schemas import InvoiceCreate, InvoiceLineIn, InvoiceOut
+from app.verapdf import PdfAValidationError
 
 router = APIRouter(tags=["invoices"])
 
@@ -256,11 +263,13 @@ def issue_invoice(invoice_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]
     return invoice
 
 
-def _stored_artifact(db: Session, invoice_id: uuid.UUID) -> InvoiceArtifact | None:
+def _stored_artifact(
+    db: Session, invoice_id: uuid.UUID, kind: str = CII_XML_KIND
+) -> InvoiceArtifact | None:
     return db.scalar(
         select(InvoiceArtifact).where(
             InvoiceArtifact.invoice_id == invoice_id,
-            InvoiceArtifact.kind == CII_XML_KIND,
+            InvoiceArtifact.kind == kind,
         )
     )
 
@@ -315,3 +324,64 @@ def get_cii_artifact(invoice_id: uuid.UUID, db: Annotated[Session, Depends(get_d
     if artifact is None:
         raise HTTPException(status_code=404, detail="Aucun XML CII pour cette facture.")
     return Response(artifact.content, media_type="application/xml")
+
+
+@router.post(
+    "/invoices/{invoice_id}/facturx",
+    dependencies=[Depends(require_role(Role.admin, Role.comptable))],
+)
+def generate_facturx_artifact(
+    invoice_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]
+) -> Response:
+    """Assemble le Factur-X final depuis l'artefact cii_xml stocké.
+
+    Le XML n'est pas régénéré : sans artefact cii_xml, 409 explicite.
+    Idempotent comme /cii : 201 à la création, 200 ensuite.
+    """
+    invoice = db.get(Invoice, invoice_id)
+    if invoice is None:
+        raise HTTPException(status_code=404, detail="Facture introuvable.")
+    if invoice.status != InvoiceStatus.emise:
+        raise HTTPException(status_code=409, detail="Facture non émise : pas de Factur-X.")
+
+    existing = _stored_artifact(db, invoice_id, FACTURX_PDF_KIND)
+    if existing is not None:
+        return Response(existing.content, status_code=200, media_type="application/pdf")
+
+    cii_artifact = _stored_artifact(db, invoice_id, CII_XML_KIND)
+    if cii_artifact is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Aucun artefact cii_xml : générer d'abord le XML (POST .../cii).",
+        )
+
+    try:
+        pdf_bytes = assemble_facturx(invoice, cii_artifact.content)
+    except (PdfRenderError, PdfAValidationError, FacturxStructureError) as exc:
+        # Fail-closed : rapport intact, aucun artefact.
+        raise HTTPException(
+            status_code=422,
+            detail=f"Assemblage Factur-X échoué, aucun artefact produit :\n{exc}",
+        ) from exc
+
+    db.add(
+        InvoiceArtifact(
+            tenant_id=invoice.tenant_id,
+            invoice_id=invoice.id,
+            kind=FACTURX_PDF_KIND,
+            content=pdf_bytes,
+            sha256=hashlib.sha256(pdf_bytes).hexdigest(),
+        )
+    )
+    db.flush()
+    return Response(pdf_bytes, status_code=201, media_type="application/pdf")
+
+
+@router.get("/invoices/{invoice_id}/facturx")
+def get_facturx_artifact(
+    invoice_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]
+) -> Response:
+    artifact = _stored_artifact(db, invoice_id, FACTURX_PDF_KIND)
+    if artifact is None:
+        raise HTTPException(status_code=404, detail="Aucun Factur-X pour cette facture.")
+    return Response(artifact.content, media_type="application/pdf")
