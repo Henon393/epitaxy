@@ -9,7 +9,10 @@ from app.models import Base
 config = context.config
 
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
+    # disable_existing_loggers=False : sans cela, fileConfig éteindrait les
+    # loggers applicatifs déjà créés (app.security notamment) quand les
+    # migrations tournent dans le même processus que l'app ou les tests.
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
 
