@@ -165,6 +165,34 @@ facture réelle multi-taux et une facture en franchise.
   le rejette (« element is not nillable »). Retenu : **BT-72
   systématique** — `supply_date`, sinon réputé égal à la date d'émission.
 
+## Résultats empiriques 4b-2 (WeasyPrint 66 en conteneur, veraPDF cli, pypdf)
+
+- **Rendu containerisé** : WeasyPrint inutilisable sur l'hôte Windows (DLL
+  Pango/GTK absentes) — le rendu tourne dans `docker/pdf` (Linux, Pango
+  trivial, fonts-dejavu), cohérent avec veraPDF déjà containerisé. Commandes
+  pilotées par config (`APP_PDF_RENDER_COMMAND`, `APP_VERAPDF_COMMAND`),
+  répertoire d'échange `.exchange/` bind-mounté, gitignoré.
+- **AFRelationship = `Alternative`** pour EN 16931, confirmé contre la spec
+  FNFE-MPE/FeRD et non contre la lib : `Data` n'est admis que pour MINIMUM
+  et BASIC WL ; le défaut `data` de factur-x est **non conforme** pour notre
+  profil et est surchargé explicitement.
+- **`generate_from_binary` réécrit le XMP avec `pdfaid:part=3` en dur** :
+  un corps A-2b saboté devient... un A-3b légitimement valide (A-3 = A-2 +
+  fichiers embarqués). Le test de rejet du conteneur non conforme utilise
+  donc un PDF ordinaire, sans OutputIntent : le XMP menteur (part=3) ne
+  suffit pas à tromper veraPDF, qui échoue bien en flavour 3b.
+- **Étage « structure Factur-X »** : assertions pypdf propres au projet
+  (nom exact `factur-x.xml`, AFRelationship, MIME `text/xml`,
+  `fx:ConformanceLevel` = « EN 16931 » cohérent avec le BT-24 du XML
+  embarqué) — angle mort de veraPDF, qui valide le conteneur PDF/A mais
+  pas la spec Factur-X. Même famille d'angle mort que saxonche en 4b-1.
+- **Déterminisme** : CreationDate épinglé sur la date d'émission
+  (`dcterms.created`, lu par WeasyPrint), `/ID` épinglé sur le sha256 de
+  l'artefact cii_xml, métadonnées `generate_from_binary` fixes. Garantie
+  contractuelle **sémantique** : le XML réextrait du PDF est octet pour
+  octet l'artefact cii_xml — testé, et re-vérifié dans le pipeline avant
+  stockage.
+
 ## Stockage et régénération des artefacts
 
 Table `invoice_artifacts` (migration 0005), même régime d'inaltérabilité
