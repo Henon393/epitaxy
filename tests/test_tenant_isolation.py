@@ -101,6 +101,25 @@ def test_pas_de_fuite_de_contexte_entre_requetes_du_pool(
         assert [row.id for row in rows] == [seed.customer_b]
 
 
+def test_users_isoles_par_tenant(app_engine: Engine, super_engine: Engine, seed: SeedData) -> None:
+    # La table users est soumise au même régime RLS que les autres : un
+    # tenant ne voit pas les comptes de l'autre.
+    with super_engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO users (id, tenant_id, email, password_hash, role) VALUES "
+                "(gen_random_uuid(), :ta, 'ua@exemple.fr', 'hash', 'admin'), "
+                "(gen_random_uuid(), :tb, 'ub@exemple.fr', 'hash', 'admin')"
+            ),
+            {"ta": seed.tenant_a, "tb": seed.tenant_b},
+        )
+
+    with app_engine.connect() as conn:
+        set_tenant(conn, seed.tenant_a)
+        emails = conn.execute(text("SELECT email FROM users")).scalars().all()
+    assert emails == ["ua@exemple.fr"]
+
+
 def test_app_user_ne_peut_pas_desactiver_la_rls(app_engine: Engine, seed: SeedData) -> None:
     # Seul le propriétaire de la table (migrator) pourrait la désactiver ;
     # app_user doit être rejeté.

@@ -14,11 +14,46 @@ from dataclasses import dataclass
 import pytest
 from alembic.config import Config
 from dotenv import load_dotenv
+from fastapi.testclient import TestClient
 from sqlalchemy import Connection, Engine, create_engine, text
 
 from alembic import command
 
 load_dotenv()
+
+
+@pytest.fixture(autouse=True)
+def clean_redis() -> None:
+    """Redis dédié au projet : purge complète avant chaque test pour isoler
+    rate limiting et familles de refresh."""
+    from app.redis_client import get_redis
+
+    get_redis().flushdb()
+
+
+@pytest.fixture
+def client(apply_migrations: None) -> TestClient:
+    from app.main import app
+
+    return TestClient(app)
+
+
+def bearer(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def signup_tenant(
+    client: TestClient,
+    name: str = "Acme",
+    email: str = "admin@exemple.fr",
+    password: str = "mot-de-passe-solide",
+) -> dict:
+    response = client.post(
+        "/auth/signup",
+        json={"tenant_name": name, "email": email, "password": password},
+    )
+    assert response.status_code == 201, response.text
+    return {**response.json(), "email": email, "password": password}
 
 
 @pytest.fixture(scope="session")
