@@ -29,16 +29,29 @@ def list_customers(db: Annotated[Session, Depends(get_db)]) -> list[Customer]:
     dependencies=[Depends(require_role(Role.admin, Role.comptable))],
 )
 def create_customer(payload: CustomerCreate, db: Annotated[Session, Depends(get_db)]) -> Customer:
-    customer = Customer(
-        tenant_id=get_current_tenant(),
-        name=payload.name,
-        email=payload.email,
-    )
+    customer = Customer(tenant_id=get_current_tenant(), **payload.model_dump())
     db.add(customer)
     db.flush()
     # Même transaction que la mutation : pas de customer créé sans sa ligne
     # d'audit, ni l'inverse (fail-closed).
     record(db, AuditAction.customer_created, target_type="customer", target_id=customer.id)
+    return customer
+
+
+@router.put(
+    "/customers/{customer_id}",
+    response_model=CustomerOut,
+    dependencies=[Depends(require_role(Role.admin, Role.comptable))],
+)
+def update_customer(
+    customer_id: uuid.UUID, payload: CustomerCreate, db: Annotated[Session, Depends(get_db)]
+) -> Customer:
+    customer = db.get(Customer, customer_id)
+    if customer is None:
+        raise HTTPException(status_code=404, detail="Client introuvable.")
+    for field, value in payload.model_dump().items():
+        setattr(customer, field, value)
+    db.flush()
     return customer
 
 
