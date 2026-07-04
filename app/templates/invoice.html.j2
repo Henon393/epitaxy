@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <title>Facture {{ invoice.number }}</title>
+  {# dcterms.created : WeasyPrint en fait le CreationDate du PDF — épinglé
+     sur la date d'émission, jamais l'horloge (déterminisme, archivage). #}
+  <meta name="dcterms.created" content="{{ invoice.issue_date.isoformat() }}">
+  <meta name="description" content="Facture {{ invoice.number }}">
+  <style>
+    @page { size: A4; margin: 18mm 16mm; }
+    body { font-family: "DejaVu Sans", sans-serif; font-size: 9.5pt; color: #111; }
+    h1 { font-size: 15pt; margin: 0 0 2mm 0; }
+    .meta { margin-bottom: 6mm; }
+    .parties { width: 100%; margin-bottom: 6mm; border-collapse: collapse; }
+    .parties td { width: 50%; vertical-align: top; padding: 3mm; border: 0.3pt solid #999; }
+    .parties h2 { font-size: 10pt; margin: 0 0 1.5mm 0; }
+    table.lines, table.vat { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
+    table.lines th, table.lines td, table.vat th, table.vat td {
+      border: 0.3pt solid #999; padding: 1.5mm 2mm; text-align: left;
+    }
+    table.lines th, table.vat th { background: #eee; }
+    .num { text-align: right; }
+    .totals { margin-left: auto; border-collapse: collapse; margin-bottom: 5mm; }
+    .totals td { padding: 1mm 3mm; }
+    .totals .grand { font-weight: bold; }
+    .mention { font-weight: bold; margin: 3mm 0; }
+    .notes { font-size: 8pt; color: #333; margin-top: 6mm; }
+  </style>
+</head>
+<body>
+  <h1>Facture n° {{ invoice.number }}</h1>
+  <div class="meta">
+    Date d'émission : {{ invoice.issue_date.strftime("%d/%m/%Y") }}<br>
+    Date de livraison / prestation :
+      {{ (invoice.supply_date or invoice.issue_date).strftime("%d/%m/%Y") }}<br>
+    {% if invoice.due_date %}Date d'échéance : {{ invoice.due_date.strftime("%d/%m/%Y") }}<br>{% endif %}
+    Catégorie d'opération : {{ operation_label }}<br>
+    {% if invoice.vat_on_debits %}Option TVA acquittée d'après les débits<br>{% endif %}
+    {% if invoice.delivery_address %}Adresse de livraison : {{ invoice.delivery_address }}<br>{% endif %}
+  </div>
+
+  <table class="parties">
+    <tr>
+      <td>
+        <h2>Vendeur</h2>
+        {{ invoice.seller_legal_name }} ({{ invoice.seller_legal_form }})<br>
+        {{ invoice.seller_address_line1 }}<br>
+        {% if invoice.seller_address_line2 %}{{ invoice.seller_address_line2 }}<br>{% endif %}
+        {{ invoice.seller_postal_code }} {{ invoice.seller_city }}, {{ invoice.seller_country_code }}<br>
+        SIREN : {{ invoice.seller_siren }}<br>
+        {% if invoice.seller_siret %}SIRET : {{ invoice.seller_siret }}<br>{% endif %}
+        {% if invoice.seller_vat_number %}TVA intracommunautaire : {{ invoice.seller_vat_number }}<br>{% endif %}
+      </td>
+      <td>
+        <h2>Acheteur</h2>
+        {{ invoice.buyer_name }}<br>
+        {{ invoice.buyer_address_line1 }}<br>
+        {% if invoice.buyer_address_line2 %}{{ invoice.buyer_address_line2 }}<br>{% endif %}
+        {{ invoice.buyer_postal_code }} {{ invoice.buyer_city }}, {{ invoice.buyer_country_code }}<br>
+        SIREN : {{ invoice.buyer_siren }}<br>
+      </td>
+    </tr>
+  </table>
+
+  <table class="lines">
+    <thead>
+      <tr>
+        <th>Désignation</th><th class="num">Quantité</th><th class="num">PU HT</th>
+        <th class="num">Taux TVA</th><th class="num">Total HT</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for line in invoice.lines %}
+      <tr>
+        <td>{{ line.designation }}</td>
+        <td class="num">{{ line.quantity }}</td>
+        <td class="num">{{ line.unit_price_ht }} €</td>
+        <td class="num">{% if line.vat_rate is not none %}{{ line.vat_rate }} %{% else %}—{% endif %}</td>
+        <td class="num">{{ line.total_ht }} €</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if breakdown %}
+  <table class="vat">
+    <thead><tr><th>Taux TVA</th><th class="num">Base HT</th><th class="num">Montant TVA</th></tr></thead>
+    <tbody>
+      {% for rate, entry in breakdown %}
+      <tr>
+        <td>{{ rate }} %</td>
+        <td class="num">{{ entry["base"] }} €</td>
+        <td class="num">{{ entry["tva"] }} €</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <table class="totals">
+    <tr><td>Total HT</td><td class="num">{{ invoice.total_ht }} €</td></tr>
+    <tr><td>Total TVA</td><td class="num">{{ invoice.total_tva }} €</td></tr>
+    <tr class="grand"><td>Total TTC</td><td class="num">{{ invoice.total_ttc }} €</td></tr>
+  </table>
+
+  {% if invoice.vat_mention %}<p class="mention">{{ invoice.vat_mention }}</p>{% endif %}
+
+  <div class="notes">
+    {% for code, texte in legal_notes %}{{ texte }}<br>{% endfor %}
+  </div>
+</body>
+</html>
