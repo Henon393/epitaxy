@@ -1,6 +1,7 @@
 """Routes factures : brouillons libres, émission transactionnelle avec
 numérotation verrouillée et snapshot vendeur/acheteur figé."""
 
+import hashlib
 import uuid
 from datetime import date
 from decimal import Decimal
@@ -9,8 +10,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
+from starlette.responses import Response
 
 from app.audit import record
+from app.cii import CII_XML_KIND, CiiValidationError, generate_and_validate
 from app.db import get_current_tenant, get_db
 from app.identity import require_role
 from app.invoicing import MENTION_293B, compute_totals, line_total_ht, next_invoice_number
@@ -19,6 +22,7 @@ from app.models import (
     CompanyProfile,
     Customer,
     Invoice,
+    InvoiceArtifact,
     InvoiceLine,
     InvoiceStatus,
     Role,
@@ -250,3 +254,64 @@ def issue_invoice(invoice_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]
 
     db.expire(invoice)
     return invoice
+
+
+def _stored_artifact(db: Session, invoice_id: uuid.UUID) -> InvoiceArtifact | None:
+    return db.scalar(
+        select(InvoiceArtifact).where(
+            InvoiceArtifact.invoice_id == invoice_id,
+            InvoiceArtifact.kind == CII_XML_KIND,
+        )
+    )
+
+
+@router.post(
+    "/invoices/{invoice_id}/cii",
+    dependencies=[Depends(require_role(Role.admin, Role.comptable))],
+)
+def generate_cii_artifact(
+    invoice_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]
+) -> Response:
+    """Génère (hors transaction d'émission), valide et stocke le XML CII.
+
+    Idempotent : 201 à la création, 200 avec l'artefact existant ensuite —
+    jamais de réécriture (table append-only).
+    """
+    invoice = db.get(Invoice, invoice_id)
+    if invoice is None:
+        raise HTTPException(status_code=404, detail="Facture introuvable.")
+    if invoice.status != InvoiceStatus.emise:
+        raise HTTPException(status_code=409, detail="Facture non émise : pas de XML CII.")
+
+    existing = _stored_artifact(db, invoice_id)
+    if existing is not None:
+        return Response(existing.content, status_code=200, media_type="application/xml")
+
+    try:
+        xml_bytes = generate_and_validate(invoice)
+    except CiiValidationError as exc:
+        # Fail-closed : rapport failed-assert remonté intact, aucun artefact.
+        raise HTTPException(
+            status_code=422,
+            detail=f"Validation CII échouée, aucun artefact produit :\n{exc}",
+        ) from exc
+
+    db.add(
+        InvoiceArtifact(
+            tenant_id=invoice.tenant_id,
+            invoice_id=invoice.id,
+            kind=CII_XML_KIND,
+            content=xml_bytes,
+            sha256=hashlib.sha256(xml_bytes).hexdigest(),
+        )
+    )
+    db.flush()
+    return Response(xml_bytes, status_code=201, media_type="application/xml")
+
+
+@router.get("/invoices/{invoice_id}/cii")
+def get_cii_artifact(invoice_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]) -> Response:
+    artifact = _stored_artifact(db, invoice_id)
+    if artifact is None:
+        raise HTTPException(status_code=404, detail="Aucun XML CII pour cette facture.")
+    return Response(artifact.content, media_type="application/xml")
