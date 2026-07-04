@@ -120,6 +120,61 @@ def test_users_isoles_par_tenant(app_engine: Engine, super_engine: Engine, seed:
     assert emails == ["ua@exemple.fr"]
 
 
+def _seed_invoice(super_engine: Engine, tenant_id, customer_id) -> str:
+    import uuid as _uuid
+
+    invoice_id = _uuid.uuid4()
+    with super_engine.begin() as conn:
+        conn.execute(
+            text(
+                "INSERT INTO invoices (id, tenant_id, customer_id, status, operation_category, "
+                "vat_on_debits, total_ht, total_tva, total_ttc, vat_breakdown) "
+                "VALUES (:id, :t, :c, 'brouillon', 'mixte', false, 10, 2, 12, '{}')"
+            ),
+            {"id": invoice_id, "t": tenant_id, "c": customer_id},
+        )
+        conn.execute(
+            text(
+                "INSERT INTO invoice_lines (id, tenant_id, invoice_id, position, designation, "
+                "quantity, unit_price_ht, vat_rate, total_ht) "
+                "VALUES (gen_random_uuid(), :t, :f, 0, 'ligne', 1, 10, 20, 10)"
+            ),
+            {"t": tenant_id, "f": invoice_id},
+        )
+    return str(invoice_id)
+
+
+def test_invoices_et_lignes_isolees_par_tenant(
+    app_engine: Engine, super_engine: Engine, seed: SeedData
+) -> None:
+    facture_a = _seed_invoice(super_engine, seed.tenant_a, seed.customer_a)
+    _seed_invoice(super_engine, seed.tenant_b, seed.customer_b)
+
+    with app_engine.connect() as conn:
+        set_tenant(conn, seed.tenant_a)
+        factures = conn.execute(text("SELECT id, tenant_id FROM invoices")).fetchall()
+        lignes = conn.execute(text("SELECT tenant_id FROM invoice_lines")).fetchall()
+    assert [str(row.id) for row in factures] == [facture_a]
+    assert {row.tenant_id for row in factures} == {seed.tenant_a}
+    assert {row.tenant_id for row in lignes} == {seed.tenant_a}
+
+
+def test_insert_invoice_pour_un_autre_tenant_rejete(app_engine: Engine, seed: SeedData) -> None:
+    with app_engine.connect() as conn:
+        set_tenant(conn, seed.tenant_a)
+        with pytest.raises(DBAPIError, match="row-level security"):
+            conn.execute(
+                text(
+                    "INSERT INTO invoices (id, tenant_id, customer_id, status, "
+                    "operation_category, vat_on_debits, total_ht, total_tva, total_ttc, "
+                    "vat_breakdown) "
+                    "VALUES (gen_random_uuid(), :t, :c, 'brouillon', 'mixte', false, "
+                    "0, 0, 0, '{}')"
+                ),
+                {"t": seed.tenant_b, "c": seed.customer_b},
+            )
+
+
 def test_app_user_ne_peut_pas_desactiver_la_rls(app_engine: Engine, seed: SeedData) -> None:
     # Seul le propriétaire de la table (migrator) pourrait la désactiver ;
     # app_user doit être rejeté.
