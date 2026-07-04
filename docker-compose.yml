@@ -26,5 +26,20 @@ services:
     ports:
       - "6379:6379"
 
+  # Outils invoqués à la demande (docker compose run --rm ...), jamais
+  # démarrés par `up` grâce au profile. Répertoire d'échange bind-mounté,
+  # gitignoré.
+  pdf:
+    build: docker/pdf
+    profiles: ["tools"]
+    volumes:
+      - ./.exchange:/data
+
+  verapdf:
+    image: verapdf/cli
+    profiles: ["tools"]
+    volumes:
+      - ./.exchange:/data
+
 volumes:
   pgdata:

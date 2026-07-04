@@ -28,6 +28,14 @@ class Settings(BaseSettings):
     login_rate_limit_attempts: int = 5
     login_rate_limit_window_seconds: int = 60
 
+    # Outils containerisés (rendu PDF/A WeasyPrint, contrôle veraPDF).
+    # Commandes pilotées par config : en CI ou une fois l'app containerisée,
+    # seule la config change. Le répertoire d'échange est bind-mounté sur
+    # /data dans les deux conteneurs.
+    pdf_render_command: str = "docker compose run --rm -T pdf"
+    verapdf_command: str = "docker compose run --rm -T verapdf"
+    exchange_dir: str = ".exchange"
+
     # TODO(auth) : supprimer ce flag et la résolution par en-tête X-Tenant-Id
     # à l'étape auth — le tenant sera alors extrait du JWT vérifié.
     tenant_header_enabled: bool = False

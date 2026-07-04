@@ -16,6 +16,11 @@ dependencies = [
     # Sans saxonche, factur-x SAUTE la validation Schematron en silence —
     # inacceptable : la validation est systématique (CLAUDE.md).
     "saxonche>=12",
+    # Template du PDF lisible (le rendu WeasyPrint tourne en conteneur).
+    "jinja2>=3.1",
+    # Contrôles de structure Factur-X sur le PDF produit (déjà tiré par
+    # factur-x, déclaré car importé directement).
+    "pypdf>=4",
     "pyjwt>=2.8",
     "redis>=5.0",
 ]

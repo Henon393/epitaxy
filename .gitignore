@@ -4,6 +4,9 @@
 # Réglages locaux Claude Code
 .claude/settings.local.json
 
+# Répertoire d'échange avec les conteneurs outils (rendu PDF, veraPDF)
+.exchange/
+
 # Python
 __pycache__/
 *.py[cod]
