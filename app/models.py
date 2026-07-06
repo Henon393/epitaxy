@@ -42,6 +42,8 @@ class AuditAction(enum.StrEnum):
     customer_deleted = "customer_deleted"
     invoice_created = "invoice_created"
     invoice_issued = "invoice_issued"
+    invoice_submitted = "invoice_submitted"
+    transmission_status_changed = "transmission_status_changed"
 
 
 class VatRegime(enum.StrEnum):
@@ -278,6 +280,72 @@ class InvoiceArtifact(Base):
     content: Mapped[bytes] = mapped_column(LargeBinary)
     sha256: Mapped[str] = mapped_column(String(64))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class PaTransmission(Base):
+    """Transmission d'une facture émise vers la PA.
+
+    Ligne immuable (append-only, migration 0006) : aucun champ de statut
+    mutable — le statut courant est le dernier PaStatusEvent. La facture et
+    sa transmission sont strictement séparées : une transmission rejetée ou
+    refusée laisse la facture émise, numérotée et immuable (pas de
+    libération de numéro, pas de trou).
+    """
+
+    __tablename__ = "pa_transmissions"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("tenants.id"), index=True)
+    invoice_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("invoices.id"), index=True)
+    pa_transmission_ref: Mapped[str] = mapped_column(String(64))
+    # TODO(SIRET) : le vrai niveau de routage du dispositif est le SIRET de
+    # l'établissement (annuaire) ; le SIREN de l'acheteur, mappé en 4b-1,
+    # est un proxy acceptable pour le mock. À remplacer avec la vraie PA
+    # (colonne buyer_siret + EAS 0009 côté CII à prévoir).
+    routing_identifier: Mapped[str] = mapped_column(String(14))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    events: Mapped[list["PaStatusEvent"]] = relationship(
+        order_by="PaStatusEvent.position", lazy="selectin"
+    )
+
+    @property
+    def current_status(self) -> str | None:
+        return self.events[-1].status if self.events else None
+
+
+class PaStatusEvent(Base):
+    """Événement de statut horodaté, append-only.
+
+    L'unicité (transmission_id, position) sérialise les insertions
+    concurrentes ; le trigger de la migration 0006 encode le même graphe de
+    transitions que app/pa.py (ceinture et bretelles), positions contiguës
+    comprises.
+    """
+
+    __tablename__ = "pa_status_events"
+    __table_args__ = (
+        UniqueConstraint("transmission_id", "position", name="uq_pa_status_events_position"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("tenants.id"), index=True)
+    transmission_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid, ForeignKey("pa_transmissions.id"), index=True
+    )
+    position: Mapped[int] = mapped_column(Integer)
+    status: Mapped[str] = mapped_column(String(20))
+    # Obligatoires quand status = encaissee (schéma applicatif + trigger).
+    paid_amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), default=None)
+    paid_at: Mapped[date | None] = mapped_column(Date, default=None)
+    reason: Mapped[str | None] = mapped_column(String(500), default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    @property
+    def status_code(self) -> str:
+        from app.pa import PA_STATUS_CODES, PaStatus
+
+        return PA_STATUS_CODES[PaStatus(self.status)]
 
 
 class InvoiceCounter(Base):
