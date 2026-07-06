@@ -105,7 +105,13 @@ class AuditLog(Base):
     """
 
     __tablename__ = "audit_log"
-    __table_args__ = (Index("ix_audit_log_tenant_created", "tenant_id", "created_at"),)
+    __table_args__ = (
+        Index("ix_audit_log_tenant_created", "tenant_id", "created_at"),
+        # Filet anti-fourche du chaînage (3b) : l'ordre total par tenant est
+        # acquis par le verrou de tête, l'unicité le garantit en dernier
+        # ressort.
+        UniqueConstraint("tenant_id", "position", name="uq_audit_log_tenant_position"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("tenants.id"))
@@ -119,7 +125,29 @@ class AuditLog(Base):
     # « metadata » est réservé par SQLAlchemy (Base.metadata), d'où
     # l'attribut Python distinct pour la colonne du même nom.
     metadata_json: Mapped[dict | None] = mapped_column("metadata", JSONB, default=None)
+    # Chaînage 3b. position : ordre total par tenant ; entry_hash =
+    # HMAC-SHA256(clé, canonique ‖ prev_hash) ; hash_schema_version stockée
+    # en clair ET incluse dans le canonique — le format peut évoluer sans
+    # invalider la vérifiabilité des entrées antérieures.
+    position: Mapped[int] = mapped_column(Integer)
+    prev_hash: Mapped[str] = mapped_column(String(64))
+    entry_hash: Mapped[str] = mapped_column(String(64))
+    hash_schema_version: Mapped[int] = mapped_column(Integer)
+    # Posé côté application (record) : il entre dans le contenu haché, un
+    # server_default serait inconnu au moment du calcul.
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class AuditChainHead(Base):
+    """Tête de chaîne d'audit par tenant — un CURSEUR de sérialisation
+    (verrou de ligne dans record()), jamais une source de vérité : la
+    vérification recalcule tout depuis audit_log seul."""
+
+    __tablename__ = "audit_chain_heads"
+
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("tenants.id"), primary_key=True)
+    position: Mapped[int] = mapped_column(Integer)
+    last_hash: Mapped[str] = mapped_column(String(64))
 
 
 class Customer(Base):

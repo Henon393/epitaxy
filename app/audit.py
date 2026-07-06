@@ -13,10 +13,18 @@ strictement tenantée. Ils partent dans le logger applicatif ``app.security``
 
 import logging
 import uuid
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy.orm import Session
 
+from app.audit_chain import (
+    HASH_SCHEMA_VERSION,
+    advance_chain_head,
+    canonical_v1,
+    compute_entry_hash,
+    next_chain_link,
+)
 from app.db import get_current_tenant
 from app.identity import get_current_user
 from app.models import AuditAction, AuditLog
@@ -48,20 +56,46 @@ def record(
     if tenant_id is None:
         tenant_id = get_current_tenant()
 
+    # Chaînage 3b : la tête de chaîne du tenant est verrouillée jusqu'au
+    # commit — ordre total sans fourche, le hash enregistre cet ordre.
+    position, prev_hash = next_chain_link(session, tenant_id)
+    entry_id = uuid.uuid4()
+    created_at = datetime.now(UTC)
+    entry_hash = compute_entry_hash(
+        canonical_v1(
+            entry_id=entry_id,
+            position=position,
+            tenant_id=tenant_id,
+            actor_id=actor_id,
+            action=str(action),
+            target_type=target_type,
+            target_id=target_id,
+            metadata=metadata,
+            created_at=created_at,
+        ),
+        prev_hash,
+    )
     session.add(
         AuditLog(
+            id=entry_id,
             tenant_id=tenant_id,
             actor_id=actor_id,
             action=str(action),
             target_type=target_type,
             target_id=target_id,
             metadata_json=metadata,
+            position=position,
+            prev_hash=prev_hash,
+            entry_hash=entry_hash,
+            hash_schema_version=HASH_SCHEMA_VERSION,
+            created_at=created_at,
         )
     )
     # Flush immédiat : un échec d'écriture d'audit doit faire échouer la
     # requête (et donc annuler la mutation métier), pas être découvert au
     # commit.
     session.flush()
+    advance_chain_head(session, tenant_id, position, entry_hash)
 
 
 def log_unattributed(action: AuditAction, **fields: Any) -> None:
