@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     # démarrage, jamais de clé de repli en dur dans le code.
     jwt_secret: str
 
+    # Clé HMAC du chaînage du journal d'audit (étape 3b). Tenue hors base :
+    # un attaquant qui altère audit_log sans la clé ne peut pas re-chaîner.
+    audit_hmac_key: str
+
     redis_url: str = "redis://localhost:6379/0"
 
     # Tokens courts + refresh long révocable (famille en Redis).
