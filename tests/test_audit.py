@@ -32,10 +32,19 @@ def _audit_rows(super_engine: Engine, tenant_id: str | uuid.UUID) -> list:
 
 
 def _seed_audit_row(super_engine: Engine, tenant_id: uuid.UUID) -> uuid.UUID:
+    # Ligne brute pour les tests d'inaltérabilité/isolation : les colonnes
+    # de chaîne (3b) sont remplies avec des valeurs factices, la validité
+    # de la chaîne n'est pas l'objet de ces tests.
     row_id = uuid.uuid4()
     with super_engine.begin() as conn:
         conn.execute(
-            text("INSERT INTO audit_log (id, tenant_id, action) VALUES (:id, :t, 'login_failed')"),
+            text(
+                "INSERT INTO audit_log (id, tenant_id, action, position, prev_hash, "
+                "entry_hash, hash_schema_version) "
+                "SELECT :id, :t, 'login_failed', COALESCE(max(position), 0) + 1, "
+                "repeat('0', 64), repeat('0', 64), 1 "
+                "FROM audit_log WHERE tenant_id = :t"
+            ),
             {"id": row_id, "t": tenant_id},
         )
     return row_id
