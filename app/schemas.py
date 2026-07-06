@@ -1,5 +1,5 @@
 import uuid
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
@@ -155,6 +155,30 @@ class InvoiceOut(BaseModel):
     buyer_city: str | None
     buyer_country_code: str | None
     lines: list[InvoiceLineOut]
+
+
+class StatusEventOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    position: int
+    status: str
+    status_code: str
+    paid_amount: Decimal | None
+    paid_at: date | None
+    reason: str | None
+    created_at: datetime
+
+
+class TransmissionOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    invoice_id: uuid.UUID
+    pa_transmission_ref: str
+    routing_identifier: str
+    created_at: datetime
+    current_status: str | None
+    events: list[StatusEventOut]
 
 
 class SignupRequest(BaseModel):
