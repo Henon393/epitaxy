@@ -157,6 +157,15 @@ class InvoiceOut(BaseModel):
     lines: list[InvoiceLineOut]
 
 
+class AuditVerifyOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    intact: bool
+    entries: int
+    broken_at_position: int | None
+    reason: str | None
+
+
 class StatusEventOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
