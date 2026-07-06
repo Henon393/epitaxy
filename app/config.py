@@ -36,6 +36,11 @@ class Settings(BaseSettings):
     verapdf_command: str = "docker compose run --rm -T verapdf"
     exchange_dir: str = ".exchange"
 
+    # Connecteur Plateforme Agréée. Seule valeur admise pour l'instant :
+    # le mock — aucune transmission réelle tant qu'une implémentation
+    # sandbox n'est pas branchée volontairement ici.
+    pa_connector: Literal["mock"] = "mock"
+
     # TODO(auth) : supprimer ce flag et la résolution par en-tête X-Tenant-Id
     # à l'étape auth — le tenant sera alors extrait du JWT vérifié.
     tenant_header_enabled: bool = False
