@@ -45,6 +45,11 @@ class Settings(BaseSettings):
     # sandbox n'est pas branchée volontairement ici.
     pa_connector: Literal["mock"] = "mock"
 
+    # Worker de polling des statuts (5b).
+    pa_poll_interval_seconds: int = 60
+    pa_poll_retry_max: int = 5
+    pa_poll_retry_intervals: list[int] = [10, 30, 60, 120, 300]
+
     # TODO(auth) : supprimer ce flag et la résolution par en-tête X-Tenant-Id
     # à l'étape auth — le tenant sera alors extrait du JWT vérifié.
     tenant_header_enabled: bool = False
