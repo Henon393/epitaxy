@@ -24,13 +24,8 @@ from app.models import (
     PaTransmission,
     Role,
 )
-from app.pa import (
-    InvalidTransitionError,
-    PaStatus,
-    StatusInfo,
-    get_pa_connector,
-    validate_transition,
-)
+from app.pa import PaStatus, get_pa_connector
+from app.pa_ingest import ingest_status
 from app.schemas import TransmissionOut
 
 router = APIRouter(tags=["transmissions"])
@@ -108,6 +103,7 @@ def submit_invoice(
             position=1,
             status=result.initial.status,
             reason=result.initial.reason,
+            pa_event_ref=result.initial.event_ref,
         )
     )
     db.flush()
@@ -134,54 +130,18 @@ def submit_invoice(
 def refresh_transmission(
     transmission_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]
 ) -> PaTransmission:
+    """Ingestion synchrone à la demande — enregistreur, pas gardien (5b) :
+    une séquence hors graphe est consignée et signalée, jamais rejetée.
+    L'acteur audité est l'utilisateur authentifié (source manual)."""
     transmission = db.get(PaTransmission, transmission_id)
     if transmission is None:
         raise HTTPException(status_code=404, detail="Transmission introuvable.")
 
-    last_event = transmission.events[-1]
-    current = PaStatus(last_event.status)
-    info: StatusInfo = get_pa_connector().get_status(transmission.pa_transmission_ref)
-
-    # Statut inchangé : rien à écrire — sauf encaissee, répétable par nature
-    # (chaque paiement programmé produit son événement ; la déduplication de
-    # polls identiques viendra avec les ids d'événements de la vraie PA, 5b).
-    if info.status == current and info.status != PaStatus.encaissee:
-        return transmission
-
+    info = get_pa_connector().get_status(transmission.pa_transmission_ref)
     try:
-        validate_transition(current, info.status)
-    except InvalidTransitionError as exc:
+        ingest_status(db, transmission, info, source="manual")
+    except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
-    if info.status == PaStatus.encaissee and (info.paid_amount is None or info.paid_at is None):
-        raise HTTPException(
-            status_code=422,
-            detail="Statut encaissée : montant et date de paiement obligatoires.",
-        )
-
-    db.add(
-        PaStatusEvent(
-            tenant_id=transmission.tenant_id,
-            transmission_id=transmission.id,
-            position=last_event.position + 1,
-            status=info.status,
-            paid_amount=info.paid_amount,
-            paid_at=info.paid_at,
-            reason=info.reason,
-        )
-    )
-    db.flush()
-    record(
-        db,
-        AuditAction.transmission_status_changed,
-        target_type="pa_transmission",
-        target_id=transmission.id,
-        metadata={
-            "from": str(current),
-            "to": str(info.status),
-            **({"paid_amount": str(info.paid_amount)} if info.paid_amount is not None else {}),
-            **({"paid_at": info.paid_at.isoformat()} if info.paid_at is not None else {}),
-        },
-    )
     db.expire(transmission)
     return transmission
 
