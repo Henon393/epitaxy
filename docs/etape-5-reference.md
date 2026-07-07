@@ -40,6 +40,44 @@ La facture émise reste immuable (étape 4a). Les statuts de transmission ne la 
 
 En 4b-1, l'adresse électronique du destinataire (BT-49) a été mappée sur le SIREN en schéma EAS 0002, ce qui satisfait le Schematron. Mais dans le modèle CTC, l'adresse de routage sert à la PA à livrer la facture au bon **établissement**, et une société (SIREN) peut en compter plusieurs (SIRET distincts). Le vrai niveau de routage est donc le SIRET. En 5a, modéliser un identifiant de routage du destinataire, en actant que le SIREN est un proxy acceptable pour le mock et que le SIRET est le niveau cible pour une vraie PA.
 
+## 5b — Suivi asynchrone : bascule gardien vers enregistreur
+
+En 5a, la machine à états rejetait les transitions invalides (422, deux
+barrières). C'était correct tant que le mock produisait les statuts sous
+notre contrôle. En 5b, les statuts sont des faits rapportés par la PA, qui
+fait foi : l'ingestion (refresh manuel et worker) devient tolérante.
+
+- Le graphe de 5a devient un **référentiel d'attendu**, plus une porte :
+  une séquence hors graphe est **enregistrée** (`out_of_graph = true`),
+  auditée (`transmission_anomaly_detected`) et signalée au log sécurité.
+- Le **trigger v2** vérifie la cohérence du flag dans les deux sens : hors
+  graphe non déclaré = rejet (un bug applicatif ne maquille pas une
+  déviation en normal) ; déclaré sur une transition valide = rejet (toute
+  anomalie signalée est un vrai positif).
+- Reste strictement validé, car initié par nous ou exigence de complétude :
+  premier événement `deposee`, positions contiguës, montant et date sur
+  `encaissee`, append-only intégral.
+
+**Idempotence** : chaque événement PA porte un `pa_event_ref` (le mock en
+génère un stable par statut programmé) ; index unique partiel
+`(transmission_id, pa_event_ref)`. Deux polls du même événement = un seul
+enregistrement ; deux paiements distincts = deux événements. La course
+worker / refresh manuel se résout sur les contraintes d'unicité (savepoint,
+issue `duplicate`).
+
+**Acteurs** : refresh manuel = utilisateur authentifié ; worker =
+`actor_id` NULL explicite + métadonnée `source: pa_worker`. Convention :
+sur les actions `transmission_*`, NULL signifie acteur système.
+
+**Découverte base-first** : `pa_active_transmissions()`, fonction SECURITY
+DEFINER propriété du rôle NOLOGIN `pa_scanner` (policies RLS ciblées en
+lecture seule sur `pa_transmissions`, `pa_status_events`, `invoices`),
+retourne uniquement des paires (tenant, transmission) actives : dernier
+statut non terminal et somme des encaissements inférieure au TTC. Redis ne
+sert qu'à RQ ; le vider ne fait rien perdre. Une transmission au paiement
+partiel jamais soldé reste active indéfiniment : l'arrêt de suivi par
+expiration ou décision est hors périmètre.
+
 ## Ce que le mock simule, ce qui restera à brancher
 
 Le `MockPaConnector` simule les réponses de la PA : attribution d'un identifiant de transmission et statut Déposée à la soumission, puis statuts suivants restituables à la demande pour exercer la machine à états. Ce qui restera à brancher sur une vraie PA : l'authentification, le format d'échange réel, l'annuaire des destinataires, et le canal de réception des statuts (relève de 5b).

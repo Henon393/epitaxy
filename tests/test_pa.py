@@ -156,7 +156,10 @@ def test_statut_inchange_sans_ecriture(client: TestClient) -> None:
 # --- Terminaux et distinction technique / commercial -------------------------
 
 
-def test_rejet_technique_est_un_puits(client: TestClient) -> None:
+def test_rejet_technique_est_un_puits_du_modele_attendu(client: TestClient) -> None:
+    """Depuis 5b, le puits terminal est un référentiel d'attendu, plus une
+    porte : une sortie rapportée par la PA est consignée en anomalie, pas
+    refusée (la PA fait foi)."""
     ctx = _setup(client)
     emise = _facture_transmissible(client, ctx)
     transmission = _submit(client, ctx, emise["id"]).json()
@@ -166,14 +169,14 @@ def test_rejet_technique_est_un_puits(client: TestClient) -> None:
     )
     assert rejet.status_code == 200
     assert rejet.json()["current_status"] == "rejetee"
+    assert rejet.json()["events"][-1]["out_of_graph"] is False
 
-    # Aucune sortie d'un état terminal.
-    for statut in (PaStatus.recue, PaStatus.deposee, PaStatus.encaissee):
-        reponse = _programme_puis_refresh(
-            client, ctx, transmission, statut, paid_amount=Decimal("1"), paid_at=date(2026, 8, 1)
-        )
-        assert reponse.status_code == 422, statut
-        assert "terminal" in reponse.json()["detail"]
+    # Sortie d'état terminal rapportée par la PA : enregistrée ET signalée.
+    sortie = _programme_puis_refresh(client, ctx, transmission, PaStatus.recue)
+    assert sortie.status_code == 200
+    dernier = sortie.json()["events"][-1]
+    assert dernier["status"] == "recue"
+    assert dernier["out_of_graph"] is True
 
 
 def test_refus_commercial_direct_et_apres_reception(client: TestClient) -> None:
@@ -187,8 +190,10 @@ def test_refus_commercial_direct_et_apres_reception(client: TestClient) -> None:
     )
     assert refus.status_code == 200
     assert refus.json()["current_status"] == "refusee"
-    # Terminal aussi.
-    assert _programme_puis_refresh(client, ctx, transmission_1, PaStatus.recue).status_code == 422
+    # Terminal aussi : une sortie est consignée en anomalie (5b).
+    sortie = _programme_puis_refresh(client, ctx, transmission_1, PaStatus.recue)
+    assert sortie.status_code == 200
+    assert sortie.json()["events"][-1]["out_of_graph"] is True
 
     # Chemin 2 : refus après réception (deposee → recue → refusee).
     facture_2 = _draft(client, ctx, lines=LIGNES_MULTI_TAUX)
@@ -199,17 +204,22 @@ def test_refus_commercial_direct_et_apres_reception(client: TestClient) -> None:
     assert _programme_puis_refresh(client, ctx, transmission_2, PaStatus.recue).status_code == 200
     assert _programme_puis_refresh(client, ctx, transmission_2, PaStatus.refusee).status_code == 200
 
-    # Chemin croisé interdit : un rejet TECHNIQUE après réception n'existe
-    # pas (rejetee ne sort que de deposee).
+    # Chemin croisé hors modèle : un rejet TECHNIQUE après réception n'existe
+    # pas dans le graphe (rejetee ne sort que de deposee) — rapporté par la
+    # PA, il est consigné en anomalie (5b), pas refusé.
     facture_3 = _draft(client, ctx, lines=LIGNES_MULTI_TAUX)
     emise_3 = _issue(client, ctx, facture_3["id"]).json()
     assert _post_cii(client, ctx, emise_3["id"]).status_code == 201
     assert _post_facturx(client, ctx, emise_3["id"]).status_code == 201
     transmission_3 = _submit(client, ctx, emise_3["id"]).json()
     assert _programme_puis_refresh(client, ctx, transmission_3, PaStatus.recue).status_code == 200
-    assert _programme_puis_refresh(client, ctx, transmission_3, PaStatus.rejetee).status_code == 422
-    # Retour arrière interdit.
-    assert _programme_puis_refresh(client, ctx, transmission_3, PaStatus.deposee).status_code == 422
+    croise = _programme_puis_refresh(client, ctx, transmission_3, PaStatus.rejetee)
+    assert croise.status_code == 200
+    assert croise.json()["events"][-1]["out_of_graph"] is True
+    # Retour arrière : hors graphe lui aussi, consigné de même.
+    arriere = _programme_puis_refresh(client, ctx, transmission_3, PaStatus.deposee)
+    assert arriere.status_code == 200
+    assert arriere.json()["events"][-1]["out_of_graph"] is True
 
 
 # --- Re-soumission et frontière immuabilité -----------------------------------
