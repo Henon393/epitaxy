@@ -44,6 +44,8 @@ class AuditAction(enum.StrEnum):
     invoice_issued = "invoice_issued"
     invoice_submitted = "invoice_submitted"
     transmission_status_changed = "transmission_status_changed"
+    # Séquence de statuts hors du graphe attendu, consignée (5b).
+    transmission_anomaly_detected = "transmission_anomaly_detected"
 
 
 class VatRegime(enum.StrEnum):
@@ -354,6 +356,15 @@ class PaStatusEvent(Base):
     __tablename__ = "pa_status_events"
     __table_args__ = (
         UniqueConstraint("transmission_id", "position", name="uq_pa_status_events_position"),
+        # Idempotence du poll (5b) : un événement PA ne s'enregistre qu'une
+        # fois, barrière en base et pas seulement applicative.
+        Index(
+            "uq_pa_status_events_event_ref",
+            "transmission_id",
+            "pa_event_ref",
+            unique=True,
+            postgresql_where="pa_event_ref IS NOT NULL",
+        ),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
@@ -367,6 +378,12 @@ class PaStatusEvent(Base):
     paid_amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 2), default=None)
     paid_at: Mapped[date | None] = mapped_column(Date, default=None)
     reason: Mapped[str | None] = mapped_column(String(500), default=None)
+    # Identifiant d'événement PA, clé d'idempotence (NULL : événements 5a).
+    pa_event_ref: Mapped[str | None] = mapped_column(String(64), default=None)
+    # Ingestion tolérante (5b) : séquence hors du graphe attendu, consignée
+    # et signalée plutôt que rejetée — la PA fait foi. Le trigger v2 exige
+    # la cohérence du flag dans les deux sens.
+    out_of_graph: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     @property

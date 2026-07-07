@@ -175,6 +175,8 @@ class StatusEventOut(BaseModel):
     paid_amount: Decimal | None
     paid_at: date | None
     reason: str | None
+    pa_event_ref: str | None
+    out_of_graph: bool
     created_at: datetime
 
 

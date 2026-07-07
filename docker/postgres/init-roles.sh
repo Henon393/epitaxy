@@ -15,6 +15,19 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     CREATE ROLE app_user LOGIN PASSWORD '${POSTGRES_APP_PASSWORD}'
         NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
 
+    -- pa_scanner : rôle NOLOGIN du worker de polling (étape 5b). Propriétaire
+    -- de la fonction SECURITY DEFINER de découverte des transmissions
+    -- actives ; il reçoit des policies RLS ciblées en lecture seule dans la
+    -- migration 0008. GRANT à migrator pour que les migrations puissent lui
+    -- transférer la propriété de la fonction.
+    CREATE ROLE pa_scanner NOLOGIN NOBYPASSRLS;
+    GRANT pa_scanner TO migrator;
+    -- USAGE : exécution des fonctions SECURITY DEFINER dont il est
+    -- propriétaire. CREATE : exigé par ALTER FUNCTION ... OWNER TO dans les
+    -- migrations (seul le superuser peut l'accorder ; NOLOGIN, le rôle ne
+    -- s'exerce qu'à travers les fonctions definer écrites par les migrations).
+    GRANT USAGE, CREATE ON SCHEMA public TO pa_scanner;
+
     GRANT CREATE, USAGE ON SCHEMA public TO migrator;
     GRANT USAGE ON SCHEMA public TO app_user;
 
