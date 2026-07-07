@@ -100,7 +100,7 @@ Deux traitements lourds sont volontairement sortis du flux synchrone principal e
         └────────────────────┘
 ```
 
-Un diagramme d'architecture détaillé viendra compléter ce schéma dans `docs/` (à produire).
+Le diagramme d'architecture complet (Mermaid) est dans [docs/architecture.md](docs/architecture.md).
 
 ## Décisions de conception
 
