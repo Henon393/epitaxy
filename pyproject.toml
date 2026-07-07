@@ -23,6 +23,9 @@ dependencies = [
     "pypdf>=4",
     "pyjwt>=2.8",
     "redis>=5.0",
+    # Worker de polling PA (plus léger que Celery, Retry avec backoff
+    # intégré, pas de beat à opérer) — prévu par le CLAUDE.md dès l'origine.
+    "rq>=1.16",
 ]
 
 [project.optional-dependencies]

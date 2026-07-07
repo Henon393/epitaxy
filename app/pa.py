@@ -79,6 +79,10 @@ class StatusInfo:
     paid_amount: Decimal | None = None
     paid_at: date | None = None
     reason: str | None = None
+    # Identifiant d'événement fourni par la PA : clé d'idempotence du poll
+    # (5b). Deux polls du même événement portent le même event_ref ; deux
+    # paiements distincts, deux event_ref.
+    event_ref: str | None = None
 
 
 @dataclass(frozen=True)
@@ -109,7 +113,7 @@ class MockPaConnector(PaConnector):
 
     def submit(self, facturx_pdf: bytes, routing_identifier: str) -> SubmissionResult:
         transmission_ref = uuid.uuid4().hex
-        initial = StatusInfo(status=PaStatus.deposee)
+        initial = StatusInfo(status=PaStatus.deposee, event_ref=uuid.uuid4().hex)
         self._statuses[transmission_ref] = initial
         return SubmissionResult(transmission_ref=transmission_ref, initial=initial)
 
@@ -124,8 +128,15 @@ class MockPaConnector(PaConnector):
         paid_at: date | None = None,
         reason: str | None = None,
     ) -> None:
+        # event_ref généré AU MOMENT de la programmation, puis stable d'un
+        # poll à l'autre : re-poller le même statut redonne le même
+        # identifiant (idempotence), reprogrammer en crée un nouveau.
         self._statuses[transmission_ref] = StatusInfo(
-            status=status, paid_amount=paid_amount, paid_at=paid_at, reason=reason
+            status=status,
+            paid_amount=paid_amount,
+            paid_at=paid_at,
+            reason=reason,
+            event_ref=uuid.uuid4().hex,
         )
 
 
