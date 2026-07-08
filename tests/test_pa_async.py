@@ -13,6 +13,7 @@ from rq.timeouts import TimerDeathPenalty
 from sqlalchemy import Engine, text
 from sqlalchemy.exc import DBAPIError
 
+from app.config import get_settings
 from app.pa import PaStatus, get_pa_connector
 from app.redis_client import get_redis
 from app.worker import get_queue, list_active_transmissions, poll_transmission
@@ -267,6 +268,33 @@ def test_job_execute_par_le_worker_rq(client: TestClient) -> None:
 
     events = _events(client, ctx, emise["id"])
     assert [e["status"] for e in events] == ["deposee", "recue"]
+
+
+def test_simulate_pilote_le_mock_en_dev_seulement(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """L'endpoint de simulation (démonstration) programme le mock en dev,
+    et disparaît (404) hors dev."""
+    ctx = _setup(client)
+    emise = _facture_transmissible(client, ctx)
+    transmission = _submit(client, ctx, emise["id"]).json()
+
+    reponse = client.post(
+        f"/transmissions/{transmission['id']}/simulate",
+        headers=ctx["headers"],
+        json={"status": "recue"},
+    )
+    assert reponse.status_code == 204
+    rafraichi = _refresh(client, ctx, transmission["id"])
+    assert rafraichi.json()["current_status"] == "recue"
+
+    monkeypatch.setattr(get_settings(), "environment", "prod")
+    refus = client.post(
+        f"/transmissions/{transmission['id']}/simulate",
+        headers=ctx["headers"],
+        json={"status": "approuvee"},
+    )
+    assert refus.status_code == 404
 
 
 def test_refreshs_concurrents_sans_doublon(client: TestClient) -> None:

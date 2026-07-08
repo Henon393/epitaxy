@@ -12,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.audit import record
+from app.config import get_settings
 from app.db import get_db
 from app.identity import require_role
 from app.invoice_pdf import FACTURX_PDF_KIND
@@ -24,9 +25,9 @@ from app.models import (
     PaTransmission,
     Role,
 )
-from app.pa import PaStatus, get_pa_connector
+from app.pa import MockPaConnector, PaStatus, get_pa_connector
 from app.pa_ingest import ingest_status
-from app.schemas import TransmissionOut
+from app.schemas import SimulateStatusIn, TransmissionOut
 
 router = APIRouter(tags=["transmissions"])
 
@@ -144,6 +145,41 @@ def refresh_transmission(
         raise HTTPException(status_code=422, detail=str(exc)) from exc
     db.expire(transmission)
     return transmission
+
+
+@router.post(
+    "/transmissions/{transmission_id}/simulate",
+    status_code=204,
+    dependencies=[Depends(require_role(Role.admin, Role.comptable))],
+)
+def simulate_pa_status(
+    transmission_id: uuid.UUID,
+    payload: SimulateStatusIn,
+    db: Annotated[Session, Depends(get_db)],
+) -> None:
+    """Programme le prochain statut rendu par le mock PA (le statut ne
+    s'applique qu'au refresh/poll suivant, par l'ingestion normale).
+
+    Démonstration et dev UNIQUEMENT : le mock vit en mémoire du processus
+    serveur, un client externe (scripts/demo.py) ne peut pas le piloter
+    autrement. 404 hors APP_ENVIRONMENT=dev, refus si le connecteur n'est
+    pas le mock — la voie disparaît d'elle-même avec une vraie PA.
+    """
+    if get_settings().environment != "dev":
+        raise HTTPException(status_code=404, detail="Not Found")
+    connector = get_pa_connector()
+    if not isinstance(connector, MockPaConnector):
+        raise HTTPException(status_code=409, detail="Connecteur PA non simulable.")
+    transmission = db.get(PaTransmission, transmission_id)
+    if transmission is None:
+        raise HTTPException(status_code=404, detail="Transmission introuvable.")
+    connector.program_status(
+        transmission.pa_transmission_ref,
+        PaStatus(payload.status),
+        paid_amount=payload.paid_amount,
+        paid_at=payload.paid_at,
+        reason=payload.reason,
+    )
 
 
 @router.get("/invoices/{invoice_id}/transmission", response_model=TransmissionOut)

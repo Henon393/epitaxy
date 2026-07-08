@@ -166,6 +166,15 @@ class AuditVerifyOut(BaseModel):
     reason: str | None
 
 
+class SimulateStatusIn(BaseModel):
+    """Pilotage du mock PA — démonstration et dev uniquement."""
+
+    status: str
+    paid_amount: Decimal | None = None
+    paid_at: date | None = None
+    reason: str | None = None
+
+
 class StatusEventOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
