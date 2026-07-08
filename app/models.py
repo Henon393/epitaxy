@@ -4,6 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     Date,
     DateTime,
@@ -40,6 +41,13 @@ class AuditAction(enum.StrEnum):
     login_rate_limited = "login_rate_limited"
     customer_created = "customer_created"
     customer_deleted = "customer_deleted"
+    mfa_enrolled = "mfa_enrolled"
+    mfa_activated = "mfa_activated"
+    mfa_disabled = "mfa_disabled"
+    mfa_failed = "mfa_failed"
+    # Distinct d'une vérification TOTP normale : un code de secours consommé
+    # signale un second facteur perdu ou indisponible.
+    mfa_backup_code_used = "mfa_backup_code_used"
     invoice_created = "invoice_created"
     invoice_issued = "invoice_issued"
     invoice_submitted = "invoice_submitted"
@@ -85,10 +93,31 @@ class User(Base):
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(20))
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=true())
-    # TODO(2b) : chiffrer mfa_secret au repos (il donne le contrôle du second
-    # facteur) avant toute activation du TOTP — ne jamais le stocker en clair.
+    # Chiffré au repos (jeton Fernet, cf. app/mfa.py) — le TODO(2b) posé à
+    # l'étape 2 est fermé : jamais de secret TOTP en clair en base.
     mfa_secret: Mapped[str | None] = mapped_column(String(255), default=None)
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
+    # Anti-rejeu TOTP : pas de temps du dernier code accepté (2b).
+    mfa_last_timestep: Mapped[int | None] = mapped_column(BigInteger, default=None)
+    # Compteur d'invalidation de sessions : porté en claim `sv` par les
+    # jetons, vérifié au rafraîchissement et à l'échange MFA. Incrémenté à
+    # l'activation/désactivation du MFA ; réutilisable pour le changement de
+    # mot de passe et la déconnexion globale.
+    session_version: Mapped[int] = mapped_column(Integer, server_default="0", default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class MfaBackupCode(Base):
+    """Code de secours MFA : haché argon2 comme un mot de passe, à usage
+    unique (used_at posé à la consommation), affiché une seule fois."""
+
+    __tablename__ = "mfa_backup_codes"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("tenants.id"), index=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("users.id"), index=True)
+    code_hash: Mapped[str] = mapped_column(String(255))
+    used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
