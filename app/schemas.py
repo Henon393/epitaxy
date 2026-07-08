@@ -214,6 +214,33 @@ class TokenPair(BaseModel):
     token_type: str = "bearer"
 
 
+class MfaChallengeOut(BaseModel):
+    """Authentification partielle : mot de passe validé, second facteur
+    exigé. Le jeton intermédiaire n'ouvre aucune ressource."""
+
+    mfa_required: bool = True
+    mfa_token: str
+
+
+class MfaVerifyIn(BaseModel):
+    mfa_token: str
+    code: str = Field(min_length=6, max_length=20)
+
+
+class MfaEnrollOut(BaseModel):
+    otpauth_uri: str
+    qr_svg: str
+
+
+class MfaCodeIn(BaseModel):
+    code: str = Field(min_length=6, max_length=20)
+
+
+class MfaActivateOut(BaseModel):
+    # Affichés UNE SEULE FOIS : jamais restitués ensuite.
+    backup_codes: list[str]
+
+
 class SignupResponse(TokenPair):
     tenant_id: uuid.UUID
     user_id: uuid.UUID
