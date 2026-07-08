@@ -6,26 +6,26 @@ Ce document présente l'architecture sous trois angles complémentaires : les co
 
 ```mermaid
 flowchart TB
-    Client["Client authentifié (JWT)"]
+    Client["Client (JWT)"]
 
     subgraph API["API FastAPI"]
-        MW["Middleware tenant et identité"]
-        R["Routers : auth, invoices, transmissions, audit"]
+        MW["Middleware tenant"]
+        R["Routers"]
     end
 
     subgraph DB["PostgreSQL 16"]
-        RLS["RLS FORCE sur toutes les tables"]
-        TRG["Triggers d'immuabilité et de transitions"]
-        AUD["Journal d'audit chaîné HMAC"]
-        ART["Artefacts cii_xml et facturx_pdf"]
+        RLS["RLS FORCE"]
+        TRG["Triggers"]
+        AUD["Audit HMAC"]
+        ART["Artefacts"]
     end
 
     REDIS[("Redis 7")]
-    WK["Worker RQ : polling des statuts"]
+    WK["Worker RQ"]
 
-    subgraph TOOLS["Conteneurs de rendu et de validation"]
-        PDF["pdf : WeasyPrint, sortie PDF/A-3b"]
-        VERA["verapdf : contrôle flavour 3b"]
+    subgraph TOOLS["Rendu et validation"]
+        PDF["pdf WeasyPrint"]
+        VERA["verapdf"]
     end
 
     PA["Connecteur PA (mock)"]
@@ -42,7 +42,7 @@ flowchart TB
     WK -->|lecture en base| DB
 ```
 
-epitaxy est une API FastAPI adossée à une base PostgreSQL qui porte elle-même l'isolation entre clients. Deux traitements lourds, le rendu du PDF et la validation PDF/A, sont délégués à des conteneurs dédiés invoqués à la demande. Redis assure le rate limiting, la révocation des jetons de rafraîchissement et la file de jobs du worker. Le worker RQ suit le cycle de vie des transmissions de façon asynchrone. Le connecteur vers la Plateforme Agréée est aujourd'hui un mock derrière une interface stable.
+epitaxy est une API FastAPI dont les routers (authentification, factures, transmissions, audit) s'exécutent derrière un middleware qui pose le contexte du tenant. La base PostgreSQL porte elle-même l'isolation entre clients et concentre les mécanismes de sécurité : RLS forcée sur toutes les tables, déclencheurs d'immuabilité des factures et de contrôle des transitions de statut, journal d'audit chaîné par HMAC, et artefacts Factur-X (cii_xml et facturx_pdf) en append-only. Deux traitements lourds, le rendu du PDF par WeasyPrint et la validation PDF/A par veraPDF, sont délégués à des conteneurs dédiés invoqués à la demande. Redis assure le rate limiting, la révocation des jetons de rafraîchissement et la file de jobs du worker RQ, qui suit le cycle de vie des transmissions de façon asynchrone. Le connecteur vers la Plateforme Agréée est aujourd'hui un mock derrière une interface stable.
 
 ## Modèle de sécurité de la base
 
@@ -76,7 +76,7 @@ sequenceDiagram
     U->>API: émission de la facture
     API->>DB: snapshot figé, numéro légal, audit
     U->>API: génération du XML CII
-    API->>API: mapping EN 16931, validation XSD et Schematron FR-CTC
+    API->>API: validation XSD et Schematron FR-CTC
     API->>DB: artefact cii_xml en append-only
     U->>API: génération du Factur-X
     API->>PDF: rendu PDF/A-3b
