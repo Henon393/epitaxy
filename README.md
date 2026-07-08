@@ -166,7 +166,8 @@ Cette section est assumée et fait partie de la démonstration.
 
 - Le connecteur vers la Plateforme Agréée est un mock. L'interface est conçue pour qu'une vraie plateforme se branche sans réécriture, mais aucune transmission réelle n'a lieu.
 - Le routage de transmission utilise le SIREN comme approximation. Le vrai niveau de routage est le SIRET de l'établissement, prévu comme évolution.
-- Hors périmètre à ce stade : les avoirs et la réémission après rejet ou refus, l'e-reporting, l'authentification à second facteur, le traitement asynchrone complet des statuts, l'ancrage externe de la chaîne d'audit et la purge de rétention par segments ré-ancrés.
+- Hors périmètre à ce stade : les avoirs et la réémission après rejet ou refus, l'e-reporting, la récupération d'accès en cas de perte du second facteur sans code de secours, l'ancrage externe de la chaîne d'audit et la purge de rétention par segments ré-ancrés.
+- À l'activation ou à la désactivation du second facteur, les sessions ouvertes sont invalidées au prochain rafraîchissement ; les jetons d'accès déjà émis restent valides jusqu'à leur expiration courte, compromis assumé d'un middleware sans accès base.
 - La vérifiabilité de l'audit établit une ligne de base de confiance à l'instant de sa mise en place et ne certifie pas rétroactivement l'antériorité. Le détail des garanties figure dans le dossier docs/.
 
 ## Stack technique
