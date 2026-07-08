@@ -7,6 +7,9 @@
 # Répertoire d'échange avec les conteneurs outils (rendu PDF, veraPDF)
 .exchange/
 
+# Sorties du scénario de démonstration
+demo_output/
+
 # Python
 __pycache__/
 *.py[cod]

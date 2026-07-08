@@ -65,6 +65,17 @@ Variables d'environnement (voir `.env.example`) :
 
 Les quatre secrets applicatifs (`APP_DATABASE_URL`, `APP_JWT_SECRET`, `APP_AUDIT_HMAC_KEY`, `MIGRATOR_DATABASE_URL`) n'ont volontairement aucune valeur par défaut dans le code : leur absence fait échouer le démarrage plutôt que de fonctionner avec une clé de repli.
 
+## Démonstration
+
+Un scénario reproductible déroule le parcours complet contre l'API en marche, sur un tenant jetable créé à la volée :
+
+```bash
+# infra, migrations et API lancées (voir Démarrage rapide), puis :
+python scripts/demo.py
+```
+
+Le script ([scripts/demo.py](scripts/demo.py)) prouve la chaîne de bout en bout : création du tenant et de son admin, profil vendeur et client avec SIREN, facture multi-taux émise avec son numéro légal, XML CII validé XSD et Schematron FR-CTC, Factur-X validé par veraPDF et sauvé dans `demo_output/` (ouvrable dans un lecteur PDF, le XML est embarqué), transmission à la PA mock avec cycle de vie jusqu'à Encaissée, chaîne d'audit re-vérifiée cryptographiquement, et deux preuves de sécurité : la modification d'une facture émise est refusée, et un second tenant ne voit rien du premier. Chaque étape affiche une ligne de résultat, et un récapitulatif clôt le parcours.
+
 ## Architecture
 
 epitaxy est une API construite autour d'une base PostgreSQL dont l'isolation multi-tenant est portée par le moteur lui-même. Le parcours d'une facture suit une ligne claire : création d'un brouillon, émission qui fige les données et attribue un numéro légal, génération du Factur-X à partir des données figées, transmission via le connecteur PA avec suivi du cycle de vie des statuts, chaque opération sensible étant tracée dans un journal d'audit chaîné.
