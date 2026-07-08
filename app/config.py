@@ -22,6 +22,24 @@ class Settings(BaseSettings):
     # un attaquant qui altère audit_log sans la clé ne peut pas re-chaîner.
     audit_hmac_key: str
 
+    # Clés Fernet du chiffrement des secrets TOTP au repos (2b), séparées
+    # par des virgules : la PREMIÈRE chiffre, toutes déchiffrent
+    # (MultiFernet). Rotation : nouvelle clé en tête, re-chiffrement par
+    # migrator, retrait de l'ancienne. Aucun défaut.
+    mfa_encryption_keys: str
+
+    # Jeton intermédiaire d'authentification partielle (login à deux temps).
+    mfa_token_ttl_seconds: int = 5 * 60
+    # Vérification du second facteur : fenêtre par (IP, utilisateur)...
+    mfa_rate_limit_attempts: int = 5
+    mfa_rate_limit_window_seconds: int = 60
+    # ...et fenêtre par utilisateur SEUL, indépendante de l'IP : un
+    # brute-force distribué multi-IP ne contourne pas la limite. Temporaire
+    # et auto-réinitialisée (TTL) : pas de verrouillage exploitable en déni
+    # de service contre la victime.
+    mfa_user_rate_limit_attempts: int = 10
+    mfa_user_rate_limit_window_seconds: int = 300
+
     redis_url: str = "redis://localhost:6379/0"
 
     # Tokens courts + refresh long révocable (famille en Redis).
