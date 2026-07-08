@@ -41,7 +41,9 @@ def _encode(claims: dict[str, Any], ttl_seconds: int) -> str:
     return jwt.encode(claims, get_settings().jwt_secret, algorithm=ALGORITHM)
 
 
-def create_access_token(user_id: uuid.UUID, tenant_id: uuid.UUID, role: str) -> str:
+def create_access_token(
+    user_id: uuid.UUID, tenant_id: uuid.UUID, role: str, session_version: int
+) -> str:
     return _encode(
         {
             "sub": str(user_id),
@@ -49,12 +51,15 @@ def create_access_token(user_id: uuid.UUID, tenant_id: uuid.UUID, role: str) -> 
             "role": role,
             "type": "access",
             "jti": str(uuid.uuid4()),
+            "sv": session_version,
         },
         get_settings().access_token_ttl_seconds,
     )
 
 
-def create_refresh_token(user_id: uuid.UUID, tenant_id: uuid.UUID, family_id: str, jti: str) -> str:
+def create_refresh_token(
+    user_id: uuid.UUID, tenant_id: uuid.UUID, family_id: str, jti: str, session_version: int
+) -> str:
     return _encode(
         {
             "sub": str(user_id),
@@ -62,8 +67,28 @@ def create_refresh_token(user_id: uuid.UUID, tenant_id: uuid.UUID, family_id: st
             "type": "refresh",
             "family_id": family_id,
             "jti": jti,
+            "sv": session_version,
         },
         get_settings().refresh_token_ttl_seconds,
+    )
+
+
+def create_mfa_token(user_id: uuid.UUID, tenant_id: uuid.UUID, session_version: int) -> str:
+    """Jeton intermédiaire d'authentification partielle (login à deux temps).
+
+    type="mfa" : le middleware n'accepte que type="access", ce jeton n'ouvre
+    donc AUCUNE ressource — son seul point d'échange est /auth/mfa/verify,
+    à usage unique (jti consommé dans Redis).
+    """
+    return _encode(
+        {
+            "sub": str(user_id),
+            "tenant_id": str(tenant_id),
+            "type": "mfa",
+            "jti": str(uuid.uuid4()),
+            "sv": session_version,
+        },
+        get_settings().mfa_token_ttl_seconds,
     )
 
 
@@ -79,7 +104,7 @@ def decode_token(token: str, expected_type: str) -> dict[str, Any]:
             token,
             get_settings().jwt_secret,
             algorithms=[ALGORITHM],
-            options={"require": ["exp", "iat", "sub", "tenant_id", "type", "jti"]},
+            options={"require": ["exp", "iat", "sub", "tenant_id", "type", "jti", "sv"]},
         )
     except jwt.InvalidTokenError as exc:
         raise TokenError(str(exc)) from exc
