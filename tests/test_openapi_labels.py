@@ -25,9 +25,20 @@ def test_les_deux_generations_ont_un_libelle_francais_distinct(client: TestClien
     assert cii != facturx
 
 
+def test_les_deux_relectures_ont_aussi_un_libelle_francais(client: TestClient) -> None:
+    chemins = _schema(client)["paths"]
+    assert chemins["/invoices/{invoice_id}/cii"]["get"]["summary"] == "Relit le XML CII stocké"
+    assert (
+        chemins["/invoices/{invoice_id}/facturx"]["get"]["summary"]
+        == "Relit le PDF Factur-X stocké"
+    )
+
+
 def test_les_libelles_ne_sont_plus_ceux_derives_du_code(client: TestClient) -> None:
     chemins = _schema(client)["paths"]
     for chemin in ("/invoices/{invoice_id}/cii", "/invoices/{invoice_id}/facturx"):
-        libelle = chemins[chemin]["post"]["summary"]
-        assert "Artifact" not in libelle, chemin
-        assert "Generate" not in libelle, chemin
+        for methode in ("get", "post"):
+            libelle = chemins[chemin][methode]["summary"]
+            assert "Artifact" not in libelle, f"{methode} {chemin}"
+            assert "Generate" not in libelle, f"{methode} {chemin}"
+            assert "Get " not in libelle, f"{methode} {chemin}"

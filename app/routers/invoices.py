@@ -322,7 +322,7 @@ def generate_cii_artifact(
     return Response(xml_bytes, status_code=201, media_type="application/xml")
 
 
-@router.get("/invoices/{invoice_id}/cii")
+@router.get("/invoices/{invoice_id}/cii", summary="Relit le XML CII stocké")
 def get_cii_artifact(invoice_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]) -> Response:
     artifact = _stored_artifact(db, invoice_id)
     if artifact is None:
@@ -382,7 +382,7 @@ def generate_facturx_artifact(
     return Response(pdf_bytes, status_code=201, media_type="application/pdf")
 
 
-@router.get("/invoices/{invoice_id}/facturx")
+@router.get("/invoices/{invoice_id}/facturx", summary="Relit le PDF Factur-X stocké")
 def get_facturx_artifact(
     invoice_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]
 ) -> Response:
