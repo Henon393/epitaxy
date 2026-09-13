@@ -3,7 +3,7 @@
 Cycle de vie (codes de la nomenclature DGFiP, spécifications externes 3.1).
 Le graphe encode deux invariants :
 - progression avant seulement, les statuts recommandés (recue, approuvee)
-  étant facultatifs — une PA minimale saute directement de deposee à
+  étant facultatifs, une PA minimale saute directement de deposee à
   encaissee ou refusee ;
 - la distinction technique/commercial est portée par le statut lui-même
   (rejetee 213 = rejet technique par la PA, refusee 210 = refus commercial

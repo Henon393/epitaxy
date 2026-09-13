@@ -1,4 +1,4 @@
-# Référence 4b — Génération Factur-X (EN 16931 / CII)
+# Référence 4b : Génération Factur-X (EN 16931 / CII)
 
 Document de référence pour l'étape 4b. Les résultats empiriques 4b-1
 (Schematron FR-CTC réel) sont consignés en fin de document.
@@ -90,7 +90,7 @@ Toutes les données proviennent des colonnes de snapshot figées à l'émission,
 | Total TTC | BT-112 | `total_ttc` |
 | Net à payer | BT-115 | |
 
-## Catégories de TVA — le prolongement de la distinction taux zéro / sans taux
+## Catégories de TVA : le prolongement de la distinction taux zéro / sans taux
 
 | Ton cas 4a | Catégorie CII (BT-118) | Taux | Motif d'exonération |
 |---|---|---|---|
@@ -109,7 +109,7 @@ La franchise en base est un régime d'assujetti non redevable (dans le champ de 
 - **Cohérence profil** entre BT-24 et le XMP `fx:ConformanceLevel`.
 - **XSD n'est pas Schematron** : un XML peut passer la forme (XSD) et échouer le fond (Schematron). La majorité des rejets sont Schematron. Toujours passer les deux.
 
-## Point à valider empiriquement — la franchise en base
+## Point à valider empiriquement : la franchise en base
 
 La catégorie E, en EN 16931 de base, tend à exiger un identifiant TVA vendeur (BT-31), que l'auto-entrepreneur en franchise n'a pas. Les règles FR-CTC adaptent ce cas. Méthode : générer un XML de facture en franchise, le passer à `xml_check_schematron(check_option='fr-ctc')`, lire les failed-assert, et ajuster. Points à trancher par ce test :
 - Catégorie exacte retenue par le Schematron FR-CTC pour la franchise (E attendu).
@@ -137,13 +137,13 @@ La génération se fait hors de la transaction d'émission (qui reste courte, ve
 Constatés par le cycle générer → lire les failed-assert → ajuster, sur une
 facture réelle multi-taux et une facture en franchise.
 
-### Franchise en base — les trois questions tranchées
+### Franchise en base : les trois questions tranchées
 - **Catégorie retenue : E confirmée** (taux 0, BR-E-05), le Schematron
   FR-CTC ne s'y oppose pas.
 - **BT-120 texte seul suffit** : « TVA non applicable, art. 293 B du CGI ».
   **Aucun code VATEX (BT-121) exigé** par le FR-CTC actuel.
 - **Absence de BT-31** : c'est `BR-E-02` (schematron de **base**, niveau
-  ligne — pas BR-E-10) qui exige BT-31, BT-32 ou BT-63. Solution retenue :
+  ligne, pas BR-E-10) qui exige BT-31, BT-32 ou BT-63. Solution retenue :
   **BT-32 = SIREN du vendeur** (émis en SpecifiedTaxRegistration schemeID
   `FC` par la lib), uniquement quand BT-31 est absent.
 
@@ -157,18 +157,18 @@ facture réelle multi-taux et une facture en franchise.
 - `BR-FR-12/BT-49` et `BR-FR-13/BT-34` : adresse électronique acheteur
   **et** vendeur obligatoires. Retenu : SIREN, schéma EAS `0002`, des deux
   côtés.
-- **BG-16 (instructions de paiement) : non exigé** par le FR-CTC actuel —
+- **BG-16 (instructions de paiement) : non exigé** par le FR-CTC actuel,
   surveillé, aucun failed-assert.
 
 ### Contrainte XSD hors Schematron
 - La lib émet toujours `ApplicableHeaderTradeDelivery` ; vide, le XSD CII
   le rejette (« element is not nillable »). Retenu : **BT-72
-  systématique** — `supply_date`, sinon réputé égal à la date d'émission.
+  systématique**, `supply_date`, sinon réputé égal à la date d'émission.
 
 ## Résultats empiriques 4b-2 (WeasyPrint 66 en conteneur, veraPDF cli, pypdf)
 
 - **Rendu containerisé** : WeasyPrint inutilisable sur l'hôte Windows (DLL
-  Pango/GTK absentes) — le rendu tourne dans `docker/pdf` (Linux, Pango
+  Pango/GTK absentes), le rendu tourne dans `docker/pdf` (Linux, Pango
   trivial, fonts-dejavu), cohérent avec veraPDF déjà containerisé. Commandes
   pilotées par config (`APP_PDF_RENDER_COMMAND`, `APP_VERAPDF_COMMAND`),
   répertoire d'échange `.exchange/` bind-mounté, gitignoré.
@@ -184,13 +184,13 @@ facture réelle multi-taux et une facture en franchise.
 - **Étage « structure Factur-X »** : assertions pypdf propres au projet
   (nom exact `factur-x.xml`, AFRelationship, MIME `text/xml`,
   `fx:ConformanceLevel` = « EN 16931 » cohérent avec le BT-24 du XML
-  embarqué) — angle mort de veraPDF, qui valide le conteneur PDF/A mais
+  embarqué), angle mort de veraPDF, qui valide le conteneur PDF/A mais
   pas la spec Factur-X. Même famille d'angle mort que saxonche en 4b-1.
 - **Déterminisme** : CreationDate épinglé sur la date d'émission
   (`dcterms.created`, lu par WeasyPrint), `/ID` épinglé sur le sha256 de
   l'artefact cii_xml, métadonnées `generate_from_binary` fixes. Garantie
   contractuelle **sémantique** : le XML réextrait du PDF est octet pour
-  octet l'artefact cii_xml — testé, et re-vérifié dans le pipeline avant
+  octet l'artefact cii_xml, testé, et re-vérifié dans le pipeline avant
   stockage.
 
 ## Stockage et régénération des artefacts
@@ -201,4 +201,4 @@ UPDATE/DELETE pour `app_user`, unicité `(invoice_id, kind)`, sha256 stocké.
 La présence de l'artefact validé vaut « transmissible » (aucun flag sur
 `invoices`, immuable). La régénération d'un artefact après correction d'un
 bug de mapping passe par `migrator` (suppression contrôlée puis re-POST),
-jamais par `app_user` — même logique que la purge de rétention d'audit_log.
+jamais par `app_user`, même logique que la purge de rétention d'audit_log.

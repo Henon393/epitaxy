@@ -133,7 +133,7 @@ def update_invoice(
     invoice.delivery_address = payload.delivery_address
     invoice.supply_date = payload.supply_date
     invoice.due_date = payload.due_date
-    # Remplacement complet des lignes (delete-orphan) — brouillon seulement.
+    # Remplacement complet des lignes (delete-orphan), brouillon seulement.
     invoice.lines = _build_lines(payload.lines, invoice.tenant_id)
     _apply_totals(invoice, payload.lines)
     db.flush()
@@ -287,7 +287,7 @@ def generate_cii_artifact(
 ) -> Response:
     """Génère (hors transaction d'émission), valide et stocke le XML CII.
 
-    Idempotent : 201 à la création, 200 avec l'artefact existant ensuite —
+    Idempotent : 201 à la création, 200 avec l'artefact existant ensuite,
     jamais de réécriture (table append-only).
     """
     invoice = db.get(Invoice, invoice_id)

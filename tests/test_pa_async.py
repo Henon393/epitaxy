@@ -119,7 +119,7 @@ def test_sequence_hors_graphe_consignee_et_signalee(
     with caplog.at_level(logging.WARNING, logger="app.security"):
         sortie = _programme_puis_refresh(client, ctx, transmission, PaStatus.recue)
 
-    # Enregistrée, pas rejetée — append-only respecté (position contiguë).
+    # Enregistrée, pas rejetée, append-only respecté (position contiguë).
     assert sortie.status_code == 200
     dernier = sortie.json()["events"][-1]
     assert (dernier["status"], dernier["out_of_graph"], dernier["position"]) == ("recue", True, 3)

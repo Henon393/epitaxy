@@ -21,7 +21,7 @@ _CENT = Decimal("0.01")
 MENTION_293B = "TVA non applicable, art. 293 B du CGI"
 
 # Taux français en vigueur. Le taux zéro est un vrai taux (exonérations,
-# exports) — distinct de l'absence de taux en franchise en base.
+# exports), distinct de l'absence de taux en franchise en base.
 ALLOWED_VAT_RATES = {
     Decimal("0.00"),
     Decimal("2.10"),
@@ -44,7 +44,7 @@ class Totals:
     total_ht: Decimal
     total_tva: Decimal
     total_ttc: Decimal
-    # {"20.00": {"base": "100.00", "tva": "20.00"}, ...} — valeurs en str
+    # {"20.00": {"base": "100.00", "tva": "20.00"}, ...}, valeurs en str
     # pour un JSONB sans flottants.
     breakdown: dict[str, dict[str, str]]
 

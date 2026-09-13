@@ -1,4 +1,4 @@
-"""Ingestion des statuts rapportés par la PA — enregistreur, pas gardien.
+"""Ingestion des statuts rapportés par la PA, enregistreur, pas gardien.
 
 Les statuts sont des faits rapportés par la PA, qui fait foi : une séquence
 hors du graphe attendu est un bug de la PA ou une lacune de notre modèle,
@@ -11,7 +11,7 @@ Reste strictement validé, car c'est nous qui l'initions ou une exigence de
 complétude légale : premier événement deposee (à la soumission), montant et
 date obligatoires sur encaissee.
 
-Idempotence : un événement PA (event_ref) ne s'enregistre qu'une fois —
+Idempotence : un événement PA (event_ref) ne s'enregistre qu'une fois,
 vérification applicative puis index unique partiel en base sous savepoint,
 ce qui règle aussi la course worker / refresh manuel.
 
@@ -86,7 +86,7 @@ def ingest_status(
     )
     try:
         # Savepoint : la course worker / refresh manuel se résout sur les
-        # contraintes d'unicité (event_ref, position) — le perdant sort en
+        # contraintes d'unicité (event_ref, position), le perdant sort en
         # duplicate, zéro doublon, sans invalider la transaction porteuse.
         with session.begin_nested():
             session.add(event)

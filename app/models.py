@@ -89,11 +89,11 @@ class User(Base):
     id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[uuid.UUID] = mapped_column(Uuid, ForeignKey("tenants.id"), index=True)
     email: Mapped[str] = mapped_column(String(320))
-    # Hash argon2 uniquement — jamais de mot de passe en clair.
+    # Hash argon2 uniquement, jamais de mot de passe en clair.
     password_hash: Mapped[str] = mapped_column(String(255))
     role: Mapped[str] = mapped_column(String(20))
     is_active: Mapped[bool] = mapped_column(Boolean, server_default=true())
-    # Chiffré au repos (jeton Fernet, cf. app/mfa.py) — le TODO(2b) posé à
+    # Chiffré au repos (jeton Fernet, cf. app/mfa.py), le TODO(2b) posé à
     # l'étape 2 est fermé : jamais de secret TOTP en clair en base.
     mfa_secret: Mapped[str | None] = mapped_column(String(255), default=None)
     mfa_enabled: Mapped[bool] = mapped_column(Boolean, server_default="false", default=False)
@@ -126,13 +126,13 @@ class AuditLog(Base):
 
     Inaltérabilité runtime, deux barrières indépendantes : UPDATE/DELETE
     révoqués pour app_user (migration 0003), et RLS FORCE sans policy
-    UPDATE/DELETE — l'absence de policy vaut refus.
+    UPDATE/DELETE, l'absence de policy vaut refus.
 
     TODO(retention) : cette table contient des données personnelles (IP,
     email tenté dans metadata) et croît sans borne. Une purge par politique
     de rétention (RGPD art. 5-1-e, limitation de conservation) devra être
-    exécutée par migrator — jamais par app_user, qui n'a ni UPDATE ni
-    DELETE — pour respecter le RGPD sans sacrifier l'inaltérabilité runtime.
+    exécutée par migrator, jamais par app_user, qui n'a ni UPDATE ni
+    DELETE, pour respecter le RGPD sans sacrifier l'inaltérabilité runtime.
     """
 
     __tablename__ = "audit_log"
@@ -158,7 +158,7 @@ class AuditLog(Base):
     metadata_json: Mapped[dict | None] = mapped_column("metadata", JSONB, default=None)
     # Chaînage 3b. position : ordre total par tenant ; entry_hash =
     # HMAC-SHA256(clé, canonique ‖ prev_hash) ; hash_schema_version stockée
-    # en clair ET incluse dans le canonique — le format peut évoluer sans
+    # en clair ET incluse dans le canonique, le format peut évoluer sans
     # invalider la vérifiabilité des entrées antérieures.
     position: Mapped[int] = mapped_column(Integer)
     prev_hash: Mapped[str] = mapped_column(String(64))
@@ -170,7 +170,7 @@ class AuditLog(Base):
 
 
 class AuditChainHead(Base):
-    """Tête de chaîne d'audit par tenant — un CURSEUR de sérialisation
+    """Tête de chaîne d'audit par tenant, un CURSEUR de sérialisation
     (verrou de ligne dans record()), jamais une source de vérité : la
     vérification recalcule tout depuis audit_log seul."""
 
@@ -231,7 +231,7 @@ class CompanyProfile(Base):
 class Invoice(Base):
     """Facture. Brouillon librement modifiable ; une fois émise, l'en-tête
     (snapshot vendeur/acheteur compris), le numéro et les lignes sont figés
-    par les triggers de la migration 0004 — la facture est autoportante."""
+    par les triggers de la migration 0004, la facture est autoportante."""
 
     __tablename__ = "invoices"
     __table_args__ = (
@@ -345,7 +345,7 @@ class PaTransmission(Base):
     """Transmission d'une facture émise vers la PA.
 
     Ligne immuable (append-only, migration 0006) : aucun champ de statut
-    mutable — le statut courant est le dernier PaStatusEvent. La facture et
+    mutable, le statut courant est le dernier PaStatusEvent. La facture et
     sa transmission sont strictement séparées : une transmission rejetée ou
     refusée laisse la facture émise, numérotée et immuable (pas de
     libération de numéro, pas de trou).
@@ -410,7 +410,7 @@ class PaStatusEvent(Base):
     # Identifiant d'événement PA, clé d'idempotence (NULL : événements 5a).
     pa_event_ref: Mapped[str | None] = mapped_column(String(64), default=None)
     # Ingestion tolérante (5b) : séquence hors du graphe attendu, consignée
-    # et signalée plutôt que rejetée — la PA fait foi. Le trigger v2 exige
+    # et signalée plutôt que rejetée, la PA fait foi. Le trigger v2 exige
     # la cohérence du flag dans les deux sens.
     out_of_graph: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

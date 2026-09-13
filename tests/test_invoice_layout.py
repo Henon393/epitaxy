@@ -70,7 +70,7 @@ def _facture_reel() -> Invoice:
         buyer_city="Lyon",
         buyer_country_code="FR",
         lines=[
-            _ligne(0, "Prestation de conseil — audit technique", "2", "520.00", "20.00"),
+            _ligne(0, "Prestation de conseil, audit technique", "2", "520.00", "20.00"),
             _ligne(1, "Ouvrage documentaire imprimé", "3", "24.50", "5.50"),
         ],
     )
@@ -119,7 +119,7 @@ def test_le_tableau_des_lignes_a_ses_colonnes() -> None:
     html = render_invoice_html(_facture_reel())
     for entete in ("Désignation", "Quantité", "PU HT", "Taux TVA", "Total HT"):
         assert entete in html
-    assert "Prestation de conseil — audit technique" in html
+    assert "Prestation de conseil, audit technique" in html
     assert "Ouvrage documentaire imprimé" in html
     assert "520.00 €" in html
     assert "20.00 %" in html
@@ -168,7 +168,7 @@ def test_la_mention_de_franchise_est_rendue_en_evidence() -> None:
     assert 'class="mention"' in html
     # Pas de ventilation sans taux applicable, et un tiret pour le taux.
     assert "Ventilation de la TVA" not in html
-    assert "—" in html
+    assert '<td class="num">-</td>' in html
 
 
 def test_les_montants_gardent_le_format_decimal_brut() -> None:

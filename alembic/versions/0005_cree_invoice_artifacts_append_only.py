@@ -41,10 +41,10 @@ def upgrade() -> None:
     op.create_index("ix_invoice_artifacts_tenant_id", "invoice_artifacts", ["tenant_id"])
 
     # Même régime que audit_log : l'artefact d'une facture émise ne se
-    # réécrit pas. Barrière 1 — privilèges (migrator est grantor du default
+    # réécrit pas. Barrière 1, privilèges (migrator est grantor du default
     # privilege arwd, il peut le retrancher).
     op.execute("REVOKE UPDATE, DELETE ON invoice_artifacts FROM app_user")
-    # Barrière 2 — RLS par commande : SELECT et INSERT scopés tenant,
+    # Barrière 2, RLS par commande : SELECT et INSERT scopés tenant,
     # aucune policy UPDATE/DELETE, donc refus sous FORCE.
     op.execute("ALTER TABLE invoice_artifacts ENABLE ROW LEVEL SECURITY")
     op.execute("ALTER TABLE invoice_artifacts FORCE ROW LEVEL SECURITY")

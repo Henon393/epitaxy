@@ -1,4 +1,4 @@
-"""Tests d'isolation tenant — la RLS elle-même, via le rôle app_user.
+"""Tests d'isolation tenant, la RLS elle-même, via le rôle app_user.
 
 Ces tests attaquent la base en SQL direct, sans passer par l'API : ils
 prouvent que l'isolation tient au niveau PostgreSQL, dernier rempart si la

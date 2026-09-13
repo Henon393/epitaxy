@@ -2,13 +2,13 @@
 
 ``record`` écrit dans la session de la requête : l'événement d'audit et la
 mutation métier committent dans la même transaction. Si l'écriture d'audit
-échoue, la mutation est annulée avec elle — fail-closed, pas de mutation
+échoue, la mutation est annulée avec elle, fail-closed, pas de mutation
 sans trace.
 
 Les événements sans tenant résolu et existant (rate limit avant lookup,
 login sur tenant inconnu) ne vont JAMAIS dans audit_log : la table est
-strictement tenantée. Ils partent dans le logger applicatif ``app.security``
-— télémétrie de sécurité côté opérateur, hors données tenant.
+strictement tenantée. Ils partent dans le logger applicatif ``app.security``,
+télémétrie de sécurité côté opérateur, hors données tenant.
 """
 
 import logging
@@ -57,7 +57,7 @@ def record(
         tenant_id = get_current_tenant()
 
     # Chaînage 3b : la tête de chaîne du tenant est verrouillée jusqu'au
-    # commit — ordre total sans fourche, le hash enregistre cet ordre.
+    # commit, ordre total sans fourche, le hash enregistre cet ordre.
     position, prev_hash = next_chain_link(session, tenant_id)
     entry_id = uuid.uuid4()
     created_at = datetime.now(UTC)

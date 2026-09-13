@@ -2,7 +2,7 @@
 
 Ces routes s'exécutent avant tout contexte tenant de confiance : le contexte
 RLS y vient de la revendication du client (motif « le contexte vient de la
-revendication »). Il ne sert que de périmètre de recherche — jamais de
+revendication »). Il ne sert que de périmètre de recherche, jamais de
 preuve : c'est argon2 qui authentifie.
 """
 
@@ -64,7 +64,7 @@ def _open_session(
 def signup(payload: SignupRequest) -> SignupResponse:
     # L'UUID du tenant est généré ici puis posé en contexte AVANT les INSERT :
     # la policy RLS (id = current_setting) passe naturellement, sans aucun
-    # contournement — la requête « devient » le tenant qu'elle crée.
+    # contournement, la requête « devient » le tenant qu'elle crée.
     tenant_id = uuid.uuid4()
     with session_for_tenant(tenant_id) as session:
         session.add(Tenant(id=tenant_id, name=payload.tenant_name))
@@ -136,7 +136,7 @@ def login(payload: LoginRequest, request: Request) -> TokenPair | MfaChallengeOu
             elif user.mfa_enabled:
                 # Authentification PARTIELLE : mot de passe validé, second
                 # facteur exigé. Aucune session ouverte, pas de
-                # login_succeeded — le jeton intermédiaire type="mfa"
+                # login_succeeded, le jeton intermédiaire type="mfa"
                 # n'ouvre rien (le middleware n'accepte que type="access").
                 mfa_pending = True
                 user_id, session_version = user.id, user.session_version
@@ -192,7 +192,7 @@ def verify_mfa(payload: MfaVerifyIn, request: Request) -> TokenPair:
             or claims["sv"] != user.session_version
         ):
             # sv obsolète : une (dés)activation s'est intercalée depuis le
-            # mot de passe — le challenge en cours meurt avec les sessions.
+            # mot de passe, le challenge en cours meurt avec les sessions.
             raise HTTPException(status_code=401, detail="Second facteur invalide.")
         try:
             method = verify_second_factor(session, user, payload.code)

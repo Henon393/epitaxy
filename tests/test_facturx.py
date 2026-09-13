@@ -124,7 +124,7 @@ def test_pdf_de_base_non_pdfa_rejete_sans_artefact(
 
     Constat empirique documenté (docs/facturx-4b-reference.md) : un corps
     A-2b saboté est « réparé » par generate_from_binary, qui réécrit le XMP
-    avec pdfaid:part=3 — or A-3 = A-2 + fichiers embarqués, le résultat est
+    avec pdfaid:part=3, or A-3 = A-2 + fichiers embarqués, le résultat est
     donc légitimement conforme A-3b. Le sabotage discriminant est un PDF
     ordinaire, sans OutputIntent : le XMP menteur (part=3) ne suffit pas à
     tromper veraPDF."""

@@ -1,4 +1,4 @@
-# Projet : SaaS de facturation électronique (Solution Compatible) — apprentissage
+# Projet : SaaS de facturation électronique (Solution Compatible), apprentissage
 
 ## Objectif
 Projet personnel d'apprentissage, pas destiné à la production commerciale.

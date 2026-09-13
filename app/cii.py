@@ -1,14 +1,14 @@
 """Génération du XML CII EN 16931 depuis le snapshot d'une facture émise.
 
 Lecture EXCLUSIVE des colonnes de snapshot (seller_*, buyer_*, totaux,
-vat_breakdown, lignes) : jamais customers ni company_profiles — la facture
+vat_breakdown, lignes) : jamais customers ni company_profiles, la facture
 émise est autoportante (étape 4a).
 
 Aucun recalcul côté XML : les montants sortent du snapshot tels quels,
 BR-CO-14/BR-CO-15 sont cohérentes par construction.
 
 Validation systématique et fail-closed : XSD puis Schematron FR-CTC. Tout
-échec lève CiiValidationError avec le rapport failed-assert intact — aucun
+échec lève CiiValidationError avec le rapport failed-assert intact, aucun
 artefact n'est produit en aval.
 """
 
@@ -22,17 +22,17 @@ from facturx import generate_cii_xml, xml_check_schematron, xml_check_xsd
 
 from app.models import Invoice, InvoiceLine
 
-# BT-24 — profil EN 16931.
+# BT-24 : profil EN 16931.
 SPECIFICATION_ID = "urn:cen.eu:en16931:2017"
-# BT-23 — mode de facturation. BR-FR-08 n'accepte que B1, S1, M1, B2, S2,
+# BT-23 : mode de facturation. BR-FR-08 n'accepte que B1, S1, M1, B2, S2,
 # M2, B4, S4, M4, S5, S6, B7, S7 (constaté au Schematron : « A1 » rejeté).
 # B1 = dépôt de facture B2B domestique.
 BUSINESS_PROCESS = "B1"
-# BT-130 — le modèle 4a n'a pas d'unité : C62 (unité générique UN/ECE Rec 20).
+# BT-130, le modèle 4a n'a pas d'unité : C62 (unité générique UN/ECE Rec 20).
 DEFAULT_UNIT_CODE = "C62"
-# BT-30-1 / BT-47-1 — schéma ICD 0002 = SIREN.
+# BT-30-1 / BT-47-1 : schéma ICD 0002 = SIREN.
 SIREN_SCHEME_ID = "0002"
-# BT-34-1 / BT-49-1 — schéma EAS 0002 = SIREN : BR-FR-13 et BR-FR-12 imposent
+# BT-34-1 / BT-49-1, schéma EAS 0002 = SIREN : BR-FR-13 et BR-FR-12 imposent
 # une adresse électronique vendeur ET acheteur (constaté au Schematron) ;
 # le SIREN sert d'adresse de routage, pratique standard du dispositif FR.
 ELECTRONIC_ADDRESS_SCHEME = "0002"
@@ -42,11 +42,11 @@ ELECTRONIC_ADDRESS_SCHEME = "0002"
 # légal français ; TODO(config) : les rendre paramétrables par profil
 # vendeur quand le besoin apparaîtra.
 LEGAL_NOTES = [
-    # AAB — conditions d'escompte (ou son absence).
+    # AAB : conditions d'escompte (ou son absence).
     ("AAB", "Pas d'escompte pour paiement anticipé."),
-    # PMD — pénalités de retard.
+    # PMD : pénalités de retard.
     ("PMD", "Pénalités de retard : trois fois le taux d'intérêt légal."),
-    # PMT — indemnité forfaitaire de recouvrement.
+    # PMT : indemnité forfaitaire de recouvrement.
     (
         "PMT",
         "Indemnité forfaitaire pour frais de recouvrement en cas de retard de paiement : 40 EUR.",

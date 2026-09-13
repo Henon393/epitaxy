@@ -23,8 +23,8 @@ COUNTRY_CODE_PATTERN = r"^[A-Z]{2}$"
 # parcours complet s'enchaîne sans rien inventer.
 #
 # Entreprises et personnes fictives. Les identifiants sont en revanche
-# structurellement valides — SIREN et SIRET à clé de Luhn correcte, numéro de
-# TVA à clé française correcte — pour ne pas achopper sur une validation.
+# structurellement valides, SIREN et SIRET à clé de Luhn correcte, numéro de
+# TVA à clé française correcte, pour ne pas achopper sur une validation.
 EX_SELLER_SIREN = "834521700"
 EX_SELLER_SIRET = "83452170000007"
 EX_SELLER_VAT = "FR59834521700"
@@ -147,7 +147,7 @@ class InvoiceLineIn(BaseModel):
     model_config = ConfigDict(
         json_schema_extra=_example(
             {
-                "designation": "Prestation de conseil — audit technique",
+                "designation": "Prestation de conseil, audit technique",
                 "quantity": "2",
                 "unit_price_ht": "520.00",
                 "vat_rate": "20.00",
@@ -187,7 +187,7 @@ class InvoiceCreate(BaseModel):
                 "due_date": "2026-10-10",
                 "lines": [
                     {
-                        "designation": "Prestation de conseil — audit technique",
+                        "designation": "Prestation de conseil, audit technique",
                         "quantity": "2",
                         "unit_price_ht": "520.00",
                         "vat_rate": "20.00",
@@ -213,7 +213,7 @@ class InvoiceCreate(BaseModel):
     )
 
     customer_id: uuid.UUID = Field(
-        description="Identifiant renvoyé par POST /customers — à remplacer par le vôtre."
+        description="Identifiant renvoyé par POST /customers, à remplacer par le vôtre."
     )
     operation_category: OperationCategory
     vat_on_debits: bool = False
@@ -284,7 +284,7 @@ class AuditVerifyOut(BaseModel):
 
 
 class SimulateStatusIn(BaseModel):
-    """Pilotage du mock PA — démonstration et dev uniquement."""
+    """Pilotage du mock PA, démonstration et dev uniquement."""
 
     # Montant et date alignés sur la facture d'exemple d'InvoiceCreate.
     model_config = ConfigDict(
@@ -358,7 +358,7 @@ class LoginRequest(BaseModel):
     )
 
     tenant_id: uuid.UUID = Field(
-        description="Identifiant renvoyé par POST /auth/signup — à remplacer par le vôtre."
+        description="Identifiant renvoyé par POST /auth/signup, à remplacer par le vôtre."
     )
     email: EmailStr
     password: str

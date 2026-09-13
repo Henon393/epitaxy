@@ -107,7 +107,7 @@ def test_totaux_multi_taux(client: TestClient) -> None:
     assert facture["vat_breakdown"]["20.00"] == {"base": "100.00", "tva": "20.00"}
     assert facture["vat_breakdown"]["10.00"] == {"base": "50.00", "tva": "5.00"}
     assert facture["vat_breakdown"]["5.50"] == {"base": "30.00", "tva": "1.65"}
-    # Le taux zéro EST une ventilation (base déclarée, TVA nulle) —
+    # Le taux zéro EST une ventilation (base déclarée, TVA nulle),
     # à ne jamais confondre avec l'absence de taux de la franchise.
     assert facture["vat_breakdown"]["0.00"] == {"base": "10.00", "tva": "0.00"}
 
@@ -259,7 +259,7 @@ def test_facture_emise_immuable_en_sql_direct(client: TestClient, app_engine: En
             conn.execute(text("DELETE FROM invoices WHERE id = :id"), {"id": emise["id"]})
         conn.rollback()
 
-        # Les lignes : modification, suppression, ajout — tout est refusé.
+        # Les lignes : modification, suppression, ajout, tout est refusé.
         set_tenant(conn, tenant_id)
         with pytest.raises(DBAPIError, match="intouchables"):
             conn.execute(

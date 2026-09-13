@@ -40,15 +40,15 @@ def upgrade() -> None:
     )
     op.create_index("ix_audit_log_tenant_created", "audit_log", ["tenant_id", "created_at"])
 
-    # Barrière 1 — privilèges : annule le default privilege de l'étape 1
+    # Barrière 1, privilèges : annule le default privilege de l'étape 1
     # (arwd) pour ne laisser à app_user que INSERT et SELECT. Exécutable ici
     # car migrator est le grantor de ces privilèges. TRUNCATE n'a jamais été
     # accordé (arwd ne contient pas D).
     op.execute("REVOKE UPDATE, DELETE ON audit_log FROM app_user")
 
-    # Barrière 2 — RLS par commande : policies SELECT et INSERT scopées au
+    # Barrière 2, RLS par commande : policies SELECT et INSERT scopées au
     # tenant courant, AUCUNE policy UPDATE/DELETE. Sous FORCE ROW LEVEL
-    # SECURITY, l'absence de policy vaut refus — même si un privilège
+    # SECURITY, l'absence de policy vaut refus, même si un privilège
     # réapparaissait un jour par erreur, la RLS bloquerait encore.
     op.execute("ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY")
     op.execute("ALTER TABLE audit_log FORCE ROW LEVEL SECURITY")

@@ -5,7 +5,7 @@ légale) ; le XML n'est JAMAIS régénéré : c'est l'artefact cii_xml validé e
 4b-1 qui est embarqué tel quel.
 
 Quatre contrôles fail-closed avant tout stockage :
-1. structure Factur-X (nom factur-x.xml, AFRelationship, MIME, XMP) — angle
+1. structure Factur-X (nom factur-x.xml, AFRelationship, MIME, XMP), angle
    mort de veraPDF, qui valide le conteneur PDF/A mais pas la spec Factur-X ;
 2. veraPDF flavour 3b (conteneur JVM) ;
 3. round-trip : le XML réextrait du PDF est octet pour octet l'artefact ;
@@ -30,7 +30,7 @@ FACTURX_PDF_KIND = "facturx_pdf"
 
 # Spec Factur-X (FNFE-MPE / FeRD, publication commune 1.09) : le fichier
 # embarqué se nomme exactement factur-x.xml ; AFRelationship vaut « Data »
-# pour MINIMUM et BASIC WL seulement — pour BASIC, EN 16931 et EXTENDED, le
+# pour MINIMUM et BASIC WL seulement, pour BASIC, EN 16931 et EXTENDED, le
 # XML est une représentation alternative de la facture : « Alternative »
 # (valeur exigée notamment côté allemand, défaut « data » de la lib non
 # conforme pour notre profil). Vérifié contre la spec, pas contre la lib.
@@ -54,14 +54,14 @@ _jinja = Environment(
 
 def _format_quantity(value: Decimal) -> str:
     """Quantité sans zéros de queue : la colonne est en Numeric(12,3), donc
-    une quantité de 2 arrive « 2.000 » — illisible sur une facture."""
+    une quantité de 2 arrive « 2.000 », illisible sur une facture."""
     return f"{Decimal(value).normalize():f}"
 
 
 def _format_price(value: Decimal) -> str:
     """Prix unitaire : deux décimales au minimum, les décimales fines gardées.
 
-    La colonne est en Numeric(12,4) — « 450.0000 » se lit « 450.00 », mais un
+    La colonne est en Numeric(12,4), « 450.0000 » se lit « 450.00 », mais un
     PU réellement au dix-millième (12.3456) reste affiché sans perte.
     """
     montant = Decimal(value).normalize()

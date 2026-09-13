@@ -295,7 +295,7 @@ def test_fail_closed_si_la_chaine_echoue(
     client: TestClient, super_engine: Engine, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Si le chaînage échoue, l'entrée d'audit échoue, donc la mutation
-    métier aussi — le fail-closed de l'étape 3 est préservé."""
+    métier aussi, le fail-closed de l'étape 3 est préservé."""
     import app.audit as audit_module
 
     ctx = signup_tenant(client)

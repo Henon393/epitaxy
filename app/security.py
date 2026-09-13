@@ -77,7 +77,7 @@ def create_mfa_token(user_id: uuid.UUID, tenant_id: uuid.UUID, session_version: 
     """Jeton intermédiaire d'authentification partielle (login à deux temps).
 
     type="mfa" : le middleware n'accepte que type="access", ce jeton n'ouvre
-    donc AUCUNE ressource — son seul point d'échange est /auth/mfa/verify,
+    donc AUCUNE ressource, son seul point d'échange est /auth/mfa/verify,
     à usage unique (jti consommé dans Redis).
     """
     return _encode(

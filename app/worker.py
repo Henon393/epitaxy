@@ -3,24 +3,24 @@
 Découverte BASE-FIRST : la base est la source de vérité. Le cycle appelle
 pa_active_transmissions(), fonction SECURITY DEFINER étroite (propriété du
 rôle NOLOGIN pa_scanner, policies ciblées en lecture seule) qui ne retourne
-que des paires (tenant_id, transmission_id) actives — dernier statut non
+que des paires (tenant_id, transmission_id) actives, dernier statut non
 terminal et encaissements non soldés. Redis ne sert qu'à RQ (queue,
 retries) : le vider ne fait perdre aucune transmission.
 
 Chaque job ouvre une session scopée tenant (SET LOCAL app.tenant_id) qui
 couvre la RLS de toutes les écritures et le verrou de tête du chaînage
 d'audit. Les événements ingérés ici portent l'acteur système (actor_id
-NULL, source pa_worker) — cf. app/pa_ingest.py.
+NULL, source pa_worker), cf. app/pa_ingest.py.
 
 Reprise sur échec : Retry RQ avec backoff ; la reprise ne crée aucun
 doublon, l'idempotence par event_ref l'absorbe. L'API n'attend jamais le
 worker (la soumission reste synchrone, le refresh manuel reste disponible).
 
 Limite documentée : une transmission au paiement partiel jamais soldé reste
-active indéfiniment et sera pollée à chaque cycle — l'arrêt de suivi par
+active indéfiniment et sera pollée à chaque cycle, l'arrêt de suivi par
 expiration ou décision est hors périmètre.
 
-Lancement (le worker RQ exige un environnement POSIX — conteneur ou WSL sur
+Lancement (le worker RQ exige un environnement POSIX, conteneur ou WSL sur
 ce poste) : `rq worker pa_polling --with-scheduler`, puis amorcer le cycle
 avec `python -c "from app.worker import poll_cycle; poll_cycle()"`.
 """
@@ -75,7 +75,7 @@ def poll_transmission(tenant_id: str, transmission_id: str) -> str:
             result = ingest_status(session, transmission, info, source="worker")
         except ValueError as exc:
             # Payload invalide (encaissée sans montant/date) : anomalie de
-            # données, un retry n'y changerait rien — signalé, pas rejoué.
+            # données, un retry n'y changerait rien, signalé, pas rejoué.
             security_logger.warning(
                 "poll: payload invalide transmission=%s : %s", transmission_id, exc
             )

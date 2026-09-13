@@ -51,7 +51,7 @@ def session_for_tenant(tenant_id: uuid.UUID) -> Iterator[Session]:
 
     ``set_config(..., is_local => true)`` est l'équivalent paramétrable de
     ``SET LOCAL`` : le contexte tenant vit dans la transaction et disparaît
-    avec elle — rien ne persiste sur la connexion rendue au pool.
+    avec elle, rien ne persiste sur la connexion rendue au pool.
 
     Utilisé directement par signup/login, où le tenant vient de la
     revendication du client : il ne sert que de périmètre de recherche RLS,

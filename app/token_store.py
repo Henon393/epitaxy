@@ -4,7 +4,7 @@ Chaque login ouvre une « famille » (une session) : la clé Redis mémorise le
 seul jti de refresh actuellement valide pour cette famille. La rotation
 remplace ce jti ; présenter un jti signé mais qui n'est plus le courant
 signale un vol (réutilisation d'un token déjà consommé) et révoque la
-famille entière — y compris le refresh le plus récent.
+famille entière, y compris le refresh le plus récent.
 """
 
 from app.redis_client import get_redis

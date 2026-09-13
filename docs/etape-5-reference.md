@@ -1,4 +1,4 @@
-# Référence Étape 5 — Connecteur Plateforme Agréée (PA)
+# Référence Étape 5 : Connecteur Plateforme Agréée (PA)
 
 Document de référence pour l'étape 5. À déposer dans `docs/`.
 Référence normative : norme AFNOR XP Z12-012 (formats et profils des messages Factures et Statuts de cycle de vie), spécifications externes DGFiP version 3.1 (31 octobre 2025), applicable au démarrage du 1er septembre 2026. Les versions 2.x sont périmées.
@@ -36,11 +36,11 @@ Référence normative : norme AFNOR XP Z12-012 (formats et profils des messages 
 
 La facture émise reste immuable (étape 4a). Les statuts de transmission ne la modifient jamais. Ils vivent dans une table de transmission rattachée à la facture par clé étrangère, avec ses événements de statut. Aucun champ de statut n'est ajouté à `invoices`.
 
-## Routage — SIREN contre SIRET
+## Routage : SIREN contre SIRET
 
 En 4b-1, l'adresse électronique du destinataire (BT-49) a été mappée sur le SIREN en schéma EAS 0002, ce qui satisfait le Schematron. Mais dans le modèle CTC, l'adresse de routage sert à la PA à livrer la facture au bon **établissement**, et une société (SIREN) peut en compter plusieurs (SIRET distincts). Le vrai niveau de routage est donc le SIRET. En 5a, modéliser un identifiant de routage du destinataire, en actant que le SIREN est un proxy acceptable pour le mock et que le SIRET est le niveau cible pour une vraie PA.
 
-## 5b — Suivi asynchrone : bascule gardien vers enregistreur
+## 5b, suivi asynchrone : bascule gardien vers enregistreur
 
 En 5a, la machine à états rejetait les transitions invalides (422, deux
 barrières). C'était correct tant que le mock produisait les statuts sous

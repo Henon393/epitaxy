@@ -205,7 +205,7 @@ def test_refus_commercial_direct_et_apres_reception(client: TestClient) -> None:
     assert _programme_puis_refresh(client, ctx, transmission_2, PaStatus.refusee).status_code == 200
 
     # Chemin croisé hors modèle : un rejet TECHNIQUE après réception n'existe
-    # pas dans le graphe (rejetee ne sort que de deposee) — rapporté par la
+    # pas dans le graphe (rejetee ne sort que de deposee), rapporté par la
     # PA, il est consigné en anomalie (5b), pas refusé.
     facture_3 = _draft(client, ctx, lines=LIGNES_MULTI_TAUX)
     emise_3 = _issue(client, ctx, facture_3["id"]).json()

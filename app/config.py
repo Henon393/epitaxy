@@ -59,7 +59,7 @@ class Settings(BaseSettings):
     exchange_dir: str = ".exchange"
 
     # Connecteur Plateforme Agréée. Seule valeur admise pour l'instant :
-    # le mock — aucune transmission réelle tant qu'une implémentation
+    # le mock, aucune transmission réelle tant qu'une implémentation
     # sandbox n'est pas branchée volontairement ici.
     pa_connector: Literal["mock"] = "mock"
 
@@ -69,7 +69,7 @@ class Settings(BaseSettings):
     pa_poll_retry_intervals: list[int] = [10, 30, 60, 120, 300]
 
     # TODO(auth) : supprimer ce flag et la résolution par en-tête X-Tenant-Id
-    # à l'étape auth — le tenant sera alors extrait du JWT vérifié.
+    # à l'étape auth, le tenant sera alors extrait du JWT vérifié.
     tenant_header_enabled: bool = False
 
     @model_validator(mode="after")

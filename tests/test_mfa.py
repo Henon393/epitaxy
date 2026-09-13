@@ -279,7 +279,7 @@ def test_fail_closed_de_l_audit_sur_l_activation(
     client: TestClient, super_engine: Engine, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """Audit saboté pendant l'activation : l'activation est annulée avec
-    lui — pas de MFA activé sans sa trace."""
+    lui, pas de MFA activé sans sa trace."""
     import app.routers.mfa as mfa_module
     from app.main import app
 

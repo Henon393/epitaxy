@@ -122,7 +122,7 @@ def test_franchise_xml_valide_categorie_e_et_mention(client: TestClient) -> None
 
 def test_totaux_xml_egaux_au_snapshot(client: TestClient) -> None:
     """BR-CO-14/15 : les montants du XML sont ceux du snapshot 4a, sans
-    recalcul divergent — vérifié textuellement en plus du Schematron."""
+    recalcul divergent, vérifié textuellement en plus du Schematron."""
     ctx = _setup(client)
     emise = _facture_emise(client, ctx, LIGNES_MULTI_TAUX)
     root = etree.fromstring(_post_cii(client, ctx, emise["id"]).content)

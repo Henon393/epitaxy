@@ -49,7 +49,7 @@ def upgrade() -> None:
     op.create_index("ix_customers_tenant_id", "customers", ["tenant_id"])
 
     # RLS : ENABLE active les policies, FORCE les applique aussi au
-    # propriétaire (migrator) — sans FORCE, PostgreSQL exempte le propriétaire.
+    # propriétaire (migrator), sans FORCE, PostgreSQL exempte le propriétaire.
     #
     # current_setting('app.tenant_id') est volontairement appelé SANS
     # missing_ok : une requête arrivant sans contexte tenant échoue

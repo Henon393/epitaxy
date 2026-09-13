@@ -1,7 +1,7 @@
 """Rend un HTML en PDF/A avec identifiant épinglé (déterminisme).
 
 Usage : render.py <in.html> <out.pdf> <identifier_hex> [variant]
-variant par défaut : pdf/a-3b — jamais A-1 ni A-2, l'embarquement
+variant par défaut : pdf/a-3b, jamais A-1 ni A-2, l'embarquement
 Factur-X exige un conteneur A-3.
 """
 

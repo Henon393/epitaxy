@@ -29,7 +29,7 @@ def enforce_login_rate_limit(client_ip: str, email: str) -> None:
 
 def enforce_mfa_rate_limit(client_ip: str, user_id: str) -> None:
     """Deux fenêtres cumulées sur la vérification du second facteur :
-    par (IP, utilisateur), et par utilisateur SEUL — un brute-force
+    par (IP, utilisateur), et par utilisateur SEUL, un brute-force
     distribué sur plusieurs IP ne contourne pas la seconde. Temporaires et
     auto-réinitialisées (TTL) : pas de verrouillage exploitable en déni de
     service contre la victime."""

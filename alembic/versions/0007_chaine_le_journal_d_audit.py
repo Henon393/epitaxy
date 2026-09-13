@@ -7,7 +7,7 @@ Create Date: 2026-07-06
 Re-chaînage complet de l'existant, exécuté par migrator : les entrées déjà
 présentes deviennent vérifiables (pas d'entrée d'ancrage qui laisserait
 l'historique hors chaîne). Le re-chaînage établit une LIGNE DE BASE de
-confiance à l'instant de la migration — il ne certifie pas rétroactivement
+confiance à l'instant de la migration, il ne certifie pas rétroactivement
 le passé (cf. docs/audit-chaine.md).
 
 FORCE RLS s'applique aussi à migrator : une policy temporaire, créée et

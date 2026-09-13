@@ -154,7 +154,7 @@ def upgrade() -> None:
         """
     )
     # Le transfert de propriété exige que pa_scanner ait CREATE sur le
-    # schéma — accordé par le superuser dans init-roles.sh (migrator ne peut
+    # schéma, accordé par le superuser dans init-roles.sh (migrator ne peut
     # pas l'accorder lui-même, il n'est pas propriétaire du schéma).
     op.execute("ALTER FUNCTION pa_active_transmissions() OWNER TO pa_scanner")
     op.execute("REVOKE ALL ON FUNCTION pa_active_transmissions() FROM PUBLIC")

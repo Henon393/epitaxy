@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8">
   <title>Facture {{ invoice.number }}</title>
-  {# dcterms.created : WeasyPrint en fait le CreationDate du PDF — épinglé
+  {# dcterms.created : WeasyPrint en fait le CreationDate du PDF, épinglé
      sur la date d'émission, jamais l'horloge (déterminisme, archivage). #}
   <meta name="dcterms.created" content="{{ invoice.issue_date.isoformat() }}">
   <meta name="description" content="Facture {{ invoice.number }}">
   <style>
     /* Mise en page sobre : une seule couleur d'appui (ardoise), des filets
-       fins, aucune trame lourde. Tout est en tables — WeasyPrint les rend de
+       fins, aucune trame lourde. Tout est en tables, WeasyPrint les rend de
        façon prévisible, et la couche texte extraite reste dans l'ordre de
        lecture (des tests s'appuient dessus).
 
@@ -174,7 +174,7 @@
         <div>
           {{ invoice.seller_address_line1 }}<br>
           {% if invoice.seller_address_line2 %}{{ invoice.seller_address_line2 }}<br>{% endif %}
-          {{ invoice.seller_postal_code }} {{ invoice.seller_city }} — {{ invoice.seller_country_code }}
+          {{ invoice.seller_postal_code }} {{ invoice.seller_city }}, {{ invoice.seller_country_code }}
         </div>
         <div class="seller-ids">
           <span>SIREN : {{ invoice.seller_siren }}</span>
@@ -238,7 +238,7 @@
         <div>
           {{ invoice.buyer_address_line1 }}<br>
           {% if invoice.buyer_address_line2 %}{{ invoice.buyer_address_line2 }}<br>{% endif %}
-          {{ invoice.buyer_postal_code }} {{ invoice.buyer_city }} — {{ invoice.buyer_country_code }}
+          {{ invoice.buyer_postal_code }} {{ invoice.buyer_city }}, {{ invoice.buyer_country_code }}
         </div>
         <div>SIREN : {{ invoice.buyer_siren }}</div>
       </td>
@@ -261,7 +261,7 @@
         <td class="designation">{{ line.designation }}</td>
         <td class="num">{{ line.quantity | quantite }}</td>
         <td class="num">{{ line.unit_price_ht | prix }} €</td>
-        <td class="num">{% if line.vat_rate is not none %}{{ line.vat_rate }} %{% else %}—{% endif %}</td>
+        <td class="num">{% if line.vat_rate is not none %}{{ line.vat_rate }} %{% else %}-{% endif %}</td>
         <td class="num">{{ line.total_ht }} €</td>
       </tr>
       {% endfor %}

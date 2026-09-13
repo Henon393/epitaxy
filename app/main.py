@@ -17,7 +17,7 @@ from app.routers import (
     users,
 )
 
-API_TITLE = "Facturation — Solution Compatible (apprentissage)"
+API_TITLE = "Facturation : Solution Compatible (apprentissage)"
 
 API_DESCRIPTION = """\
 API de facturation électronique multi-tenant (Solution Compatible adossée à
@@ -25,7 +25,7 @@ une Plateforme Agréée, mockée à ce stade).
 
 ### S'authentifier depuis cette page
 
-1. Appeler `POST /auth/signup` (ou `POST /auth/login`) — ces routes sont
+1. Appeler `POST /auth/signup` (ou `POST /auth/login`), ces routes sont
    ouvertes, elles ne demandent pas de jeton.
 2. Copier la valeur de `access_token` renvoyée dans la réponse.
 3. Cliquer sur **Authorize** en haut à droite, coller le jeton, valider.
@@ -75,7 +75,7 @@ def custom_openapi() -> dict[str, Any]:
     Purement documentaire : l'authentification reste faite par
     TenantContextMiddleware, aucune dépendance FastAPI n'est ajoutée aux
     routes. Ce schéma fait seulement apparaître le bouton Authorize sur
-    /docs et marque les routes protégées, en miroir de EXEMPT_PATHS —
+    /docs et marque les routes protégées, en miroir de EXEMPT_PATHS,
     unique source de vérité de ce qui est ouvert.
     """
     if app.openapi_schema is not None:

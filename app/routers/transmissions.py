@@ -80,11 +80,11 @@ def submit_invoice(
                 detail=f"Transmission existante au statut {current!r} : re-soumission refusée.",
             )
         # Re-soumission après rejet : uniquement pour un rejet de TRANSPORT
-        # (défaut d'acheminement ne touchant pas la facture) — on redépose
+        # (défaut d'acheminement ne touchant pas la facture), on redépose
         # le MÊME artefact, inchangé.
         # TODO(contenu) : un rejet pour défaut de contenu impose la
         # réémission d'une NOUVELLE facture (nouveau numéro), la facture
-        # étant immuable depuis 4a — hors périmètre, comme l'avoir.
+        # étant immuable depuis 4a, hors périmètre, comme l'avoir.
 
     routing_identifier = invoice.buyer_siren  # TODO(SIRET) cf. PaTransmission
     result = get_pa_connector().submit(artifact.content, routing_identifier)
@@ -131,7 +131,7 @@ def submit_invoice(
 def refresh_transmission(
     transmission_id: uuid.UUID, db: Annotated[Session, Depends(get_db)]
 ) -> PaTransmission:
-    """Ingestion synchrone à la demande — enregistreur, pas gardien (5b) :
+    """Ingestion synchrone à la demande, enregistreur, pas gardien (5b) :
     une séquence hors graphe est consignée et signalée, jamais rejetée.
     L'acteur audité est l'utilisateur authentifié (source manual)."""
     transmission = db.get(PaTransmission, transmission_id)
@@ -163,7 +163,7 @@ def simulate_pa_status(
     Démonstration et dev UNIQUEMENT : le mock vit en mémoire du processus
     serveur, un client externe (scripts/demo.py) ne peut pas le piloter
     autrement. 404 hors APP_ENVIRONMENT=dev, refus si le connecteur n'est
-    pas le mock — la voie disparaît d'elle-même avec une vraie PA.
+    pas le mock, la voie disparaît d'elle-même avec une vraie PA.
     """
     if get_settings().environment != "dev":
         raise HTTPException(status_code=404, detail="Not Found")

@@ -1,6 +1,6 @@
 """Fixtures communes : migrations, moteurs par rôle, jeu de données bi-tenant.
 
-Les tests d'isolation tournent contre le vrai PostgreSQL du docker compose —
+Les tests d'isolation tournent contre le vrai PostgreSQL du docker compose,
 la RLS ne se teste pas sur SQLite. Trois connexions distinctes :
 - superutilisateur : seed des données de test uniquement (bypasse la RLS) ;
 - migrator : via Alembic pour appliquer le schéma ;

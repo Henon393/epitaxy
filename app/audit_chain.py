@@ -6,7 +6,7 @@ tenant. Le chaînage COMPLÈTE le contrôle d'accès (REVOKE + RLS) : le
 contrôle d'accès empêche, le chaînage détecte.
 
 Anti-fourche : la tête de chaîne (audit_chain_heads) est verrouillée par
-ligne, façon compteur de factures 4a — deux écritures concurrentes du même
+ligne, façon compteur de factures 4a, deux écritures concurrentes du même
 tenant se sérialisent avant tout calcul de hash, l'ordre total est acquis
 par exclusion mutuelle. Filet : UNIQUE (tenant_id, position) sur audit_log.
 
@@ -28,7 +28,7 @@ from app.models import AuditLog
 
 # Version du schéma de hachage, stockée en clair sur chaque entrée ET
 # incluse dans le contenu canonique : le format canonique peut évoluer sans
-# invalider la vérifiabilité des entrées antérieures — la vérification lit
+# invalider la vérifiabilité des entrées antérieures, la vérification lit
 # la version pour appliquer le bon format.
 HASH_SCHEMA_VERSION = 1
 
@@ -56,7 +56,7 @@ def canonical_v1(
     created_at: datetime,
 ) -> str:
     """Sérialisation canonique v1 : champs en ordre fixe, joints par \\n,
-    JSON des métadonnées trié et compact — même exigence de reproductibilité
+    JSON des métadonnées trié et compact, même exigence de reproductibilité
     que le XML de 4b. Toute évolution passe par une nouvelle version, jamais
     par la modification de celle-ci (elle est gelée, y compris dans la
     migration 0007)."""
@@ -96,7 +96,7 @@ def next_chain_link(session: Session, tenant_id: uuid.UUID) -> tuple[int, str]:
     """Position suivante et hash précédent, sous VERROU de la tête de chaîne.
 
     L'UPDATE no-op de l'UPSERT prend le verrou de ligne : toute écriture
-    concurrente du même tenant attend le commit/rollback — aucune fourche
+    concurrente du même tenant attend le commit/rollback, aucune fourche
     possible, le hash ne fait qu'enregistrer un ordre déjà acquis. Verrou
     tenu jusqu'au commit : les écritures d'audit d'un tenant se sérialisent
     (même trade-off assumé que la numérotation sans trou). record() est
@@ -191,7 +191,7 @@ def verify_chain(session: Session, tenant_id: uuid.UUID) -> ChainVerification:
         prev_hash = recomputed
 
     # Croisement avec la tête (curseur applicatif, non fiable en soi) : une
-    # tête en avance est un indice de troncature de fin de chaîne — avec la
+    # tête en avance est un indice de troncature de fin de chaîne, avec la
     # limite documentée : tête et chaîne remises en arrière ensemble sont
     # indétectables sans ancrage externe.
     head = session.execute(

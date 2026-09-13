@@ -1,7 +1,7 @@
 """Second facteur TOTP : chiffrement du secret au repos, vérification.
 
 Chiffrement : Fernet (AES-128-CBC + HMAC-SHA256, encrypt-then-MAC, IV
-aléatoire, format versionné) en MultiFernet — la première clé de
+aléatoire, format versionné) en MultiFernet, la première clé de
 APP_MFA_ENCRYPTION_KEYS chiffre, toutes déchiffrent. Rotation : nouvelle
 clé en tête, re-chiffrement hors ligne par migrator (MultiFernet.rotate),
 retrait de l'ancienne. Le TODO(2b) posé sur mfa_secret à l'étape 2 est
@@ -9,7 +9,7 @@ fermé : le secret n'existe en clair que dans l'URI d'enrôlement, retournée
 une fois.
 
 Anti-rejeu : matching_timestep retourne le PAS DE TEMPS apparié (comparaison
-à temps constant), mémorisé sur l'utilisateur par UPDATE conditionnel — un
+à temps constant), mémorisé sur l'utilisateur par UPDATE conditionnel, un
 code accepté n'est pas rejouable dans sa fenêtre, ni aucun code plus ancien.
 
 Limite documentée : la perte du second facteur sans code de secours n'a pas
