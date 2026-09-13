@@ -276,6 +276,10 @@ def _stored_artifact(
 
 @router.post(
     "/invoices/{invoice_id}/cii",
+    # Libellé explicite : sans lui, /docs affiche « Generate Cii Artifact »,
+    # trop proche de la ligne voisine pour qu'on distingue laquelle rend le
+    # XML et laquelle rend le PDF.
+    summary="Génère le XML CII",
     dependencies=[Depends(require_role(Role.admin, Role.comptable))],
 )
 def generate_cii_artifact(
@@ -328,6 +332,7 @@ def get_cii_artifact(invoice_id: uuid.UUID, db: Annotated[Session, Depends(get_d
 
 @router.post(
     "/invoices/{invoice_id}/facturx",
+    summary="Assemble le PDF Factur-X",
     dependencies=[Depends(require_role(Role.admin, Role.comptable))],
 )
 def generate_facturx_artifact(
