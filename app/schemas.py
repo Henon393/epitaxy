@@ -14,7 +14,54 @@ SIRET_PATTERN = r"^\d{14}$"
 COUNTRY_CODE_PATTERN = r"^[A-Z]{2}$"
 
 
+# --- Jeu d'exemples pour /docs -------------------------------------------
+#
+# Sans ces exemples, Swagger UI pré-remplit les formulaires depuis les seuls
+# types et patterns : « string », « user@example.com », un code pays aléatoire
+# à deux lettres. Inutilisable tel quel. Le jeu ci-dessous est cohérent d'un
+# formulaire à l'autre (même vendeur, même client, mêmes montants) pour qu'un
+# parcours complet s'enchaîne sans rien inventer.
+#
+# Entreprises et personnes fictives. Les identifiants sont en revanche
+# structurellement valides — SIREN et SIRET à clé de Luhn correcte, numéro de
+# TVA à clé française correcte — pour ne pas achopper sur une validation.
+EX_SELLER_SIREN = "834521700"
+EX_SELLER_SIRET = "83452170000007"
+EX_SELLER_VAT = "FR59834521700"
+EX_BUYER_SIREN = "902183649"
+EX_TENANT_ID = "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed"
+EX_CUSTOMER_ID = "3f1c9d5e-8a24-4b17-9c30-5d6e7f801234"
+# Valeur manifestement à remplacer : la doc n'est pas un porte-secrets.
+EX_PASSWORD = "MotDePasseDemo!2026"
+EX_JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.PLACEHOLDER.a-remplacer"
+
+
+def _example(payload: dict) -> dict:
+    """json_schema_extra portant l'exemple sous les deux clés reconnues.
+
+    ``examples`` (tableau) est la forme JSON Schema / OpenAPI 3.1 ; ``example``
+    est la forme 3.0. Les deux sont émises pour que le pré-remplissage marche
+    quelle que soit la version de Swagger UI servie.
+    """
+    return {"examples": [payload], "example": payload}
+
+
 class CustomerCreate(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra=_example(
+            {
+                "name": "Menuiserie Lambert SARL",
+                "email": "comptabilite@menuiserie-lambert.fr",
+                "siren": EX_BUYER_SIREN,
+                "address_line1": "8 avenue Jean Jaurès",
+                "address_line2": "Bâtiment C",
+                "postal_code": "69007",
+                "city": "Lyon",
+                "country_code": "FR",
+            }
+        )
+    )
+
     name: str = Field(min_length=1, max_length=200)
     email: EmailStr
     # Facultatifs à la création, exigés à l'émission d'une facture.
@@ -41,6 +88,24 @@ class CustomerOut(BaseModel):
 
 
 class CompanyProfileIn(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra=_example(
+            {
+                "legal_name": "Atelier Bertin SAS",
+                "siren": EX_SELLER_SIREN,
+                "siret": EX_SELLER_SIRET,
+                "address_line1": "12 rue des Lilas",
+                "address_line2": "Zone artisanale des Chênes",
+                "postal_code": "44000",
+                "city": "Nantes",
+                "country_code": "FR",
+                "vat_number": EX_SELLER_VAT,
+                "legal_form": "SAS",
+                "vat_regime": "reel_normal",
+            }
+        )
+    )
+
     legal_name: str = Field(min_length=1, max_length=200)
     siren: str = Field(pattern=SIREN_PATTERN)
     siret: str | None = Field(default=None, pattern=SIRET_PATTERN)
@@ -79,6 +144,17 @@ class CompanyProfileOut(BaseModel):
 
 
 class InvoiceLineIn(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra=_example(
+            {
+                "designation": "Prestation de conseil — audit technique",
+                "quantity": "2",
+                "unit_price_ht": "520.00",
+                "vat_rate": "20.00",
+            }
+        )
+    )
+
     designation: str = Field(min_length=1, max_length=500)
     quantity: Decimal = Field(gt=0)
     unit_price_ht: Decimal = Field(ge=0)
@@ -97,7 +173,48 @@ class InvoiceLineIn(BaseModel):
 
 
 class InvoiceCreate(BaseModel):
-    customer_id: uuid.UUID
+    # Trois taux réels (20 / 10 / 5,5), d'où la catégorie « mixte » : deux
+    # prestations et un bien. Totaux correspondants : 2 363,50 HT,
+    # 337,04 de TVA, 2 700,54 TTC.
+    model_config = ConfigDict(
+        json_schema_extra=_example(
+            {
+                "customer_id": EX_CUSTOMER_ID,
+                "operation_category": "mixte",
+                "vat_on_debits": False,
+                "delivery_address": "8 avenue Jean Jaurès, 69007 Lyon",
+                "supply_date": "2026-09-10",
+                "due_date": "2026-10-10",
+                "lines": [
+                    {
+                        "designation": "Prestation de conseil — audit technique",
+                        "quantity": "2",
+                        "unit_price_ht": "520.00",
+                        "vat_rate": "20.00",
+                    },
+                    {
+                        "designation": (
+                            "Fourniture et pose d'étagères sur mesure "
+                            "(logement de plus de deux ans)"
+                        ),
+                        "quantity": "1",
+                        "unit_price_ht": "1250.00",
+                        "vat_rate": "10.00",
+                    },
+                    {
+                        "designation": "Ouvrage documentaire imprimé",
+                        "quantity": "3",
+                        "unit_price_ht": "24.50",
+                        "vat_rate": "5.50",
+                    },
+                ],
+            }
+        )
+    )
+
+    customer_id: uuid.UUID = Field(
+        description="Identifiant renvoyé par POST /customers — à remplacer par le vôtre."
+    )
     operation_category: OperationCategory
     vat_on_debits: bool = False
     delivery_address: str | None = Field(default=None, max_length=500)
@@ -169,6 +286,18 @@ class AuditVerifyOut(BaseModel):
 class SimulateStatusIn(BaseModel):
     """Pilotage du mock PA — démonstration et dev uniquement."""
 
+    # Montant et date alignés sur la facture d'exemple d'InvoiceCreate.
+    model_config = ConfigDict(
+        json_schema_extra=_example(
+            {
+                "status": "encaissee",
+                "paid_amount": "2700.54",
+                "paid_at": "2026-10-10",
+                "reason": None,
+            }
+        )
+    )
+
     status: str
     paid_amount: Decimal | None = None
     paid_at: date | None = None
@@ -202,18 +331,42 @@ class TransmissionOut(BaseModel):
 
 
 class SignupRequest(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra=_example(
+            {
+                "tenant_name": "Atelier Bertin",
+                "email": "marie.bertin@atelier-bertin.fr",
+                "password": EX_PASSWORD,
+            }
+        )
+    )
+
     tenant_name: str = Field(min_length=1, max_length=200)
     email: EmailStr
     password: str = Field(min_length=8, max_length=200)
 
 
 class LoginRequest(BaseModel):
-    tenant_id: uuid.UUID
+    model_config = ConfigDict(
+        json_schema_extra=_example(
+            {
+                "tenant_id": EX_TENANT_ID,
+                "email": "marie.bertin@atelier-bertin.fr",
+                "password": EX_PASSWORD,
+            }
+        )
+    )
+
+    tenant_id: uuid.UUID = Field(
+        description="Identifiant renvoyé par POST /auth/signup — à remplacer par le vôtre."
+    )
     email: EmailStr
     password: str
 
 
 class RefreshRequest(BaseModel):
+    model_config = ConfigDict(json_schema_extra=_example({"refresh_token": EX_JWT}))
+
     refresh_token: str
 
 
@@ -232,6 +385,8 @@ class MfaChallengeOut(BaseModel):
 
 
 class MfaVerifyIn(BaseModel):
+    model_config = ConfigDict(json_schema_extra=_example({"mfa_token": EX_JWT, "code": "123456"}))
+
     mfa_token: str
     code: str = Field(min_length=6, max_length=20)
 
@@ -242,6 +397,10 @@ class MfaEnrollOut(BaseModel):
 
 
 class MfaCodeIn(BaseModel):
+    # Code à six chiffres de l'application d'authentification, ou l'un des
+    # codes de secours remis à l'activation.
+    model_config = ConfigDict(json_schema_extra=_example({"code": "123456"}))
+
     code: str = Field(min_length=6, max_length=20)
 
 
@@ -256,6 +415,16 @@ class SignupResponse(TokenPair):
 
 
 class UserCreate(BaseModel):
+    model_config = ConfigDict(
+        json_schema_extra=_example(
+            {
+                "email": "paul.durand@atelier-bertin.fr",
+                "password": EX_PASSWORD,
+                "role": "comptable",
+            }
+        )
+    )
+
     email: EmailStr
     password: str = Field(min_length=8, max_length=200)
     role: Role
