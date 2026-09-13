@@ -52,6 +52,30 @@ _jinja = Environment(
 )
 
 
+def _format_quantity(value: Decimal) -> str:
+    """Quantité sans zéros de queue : la colonne est en Numeric(12,3), donc
+    une quantité de 2 arrive « 2.000 » — illisible sur une facture."""
+    return f"{Decimal(value).normalize():f}"
+
+
+def _format_price(value: Decimal) -> str:
+    """Prix unitaire : deux décimales au minimum, les décimales fines gardées.
+
+    La colonne est en Numeric(12,4) — « 450.0000 » se lit « 450.00 », mais un
+    PU réellement au dix-millième (12.3456) reste affiché sans perte.
+    """
+    montant = Decimal(value).normalize()
+    if -montant.as_tuple().exponent < 2:
+        montant = montant.quantize(Decimal("0.01"))
+    return f"{montant:f}"
+
+
+# Affichage seulement : les totaux, eux, restent rendus bruts pour rester
+# octet pour octet ceux du XML CII.
+_jinja.filters["quantite"] = _format_quantity
+_jinja.filters["prix"] = _format_price
+
+
 class FacturxStructureError(Exception):
     """Structure Factur-X non conforme à la spec FNFE-MPE."""
 

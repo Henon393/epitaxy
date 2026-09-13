@@ -8,57 +8,239 @@
   <meta name="dcterms.created" content="{{ invoice.issue_date.isoformat() }}">
   <meta name="description" content="Facture {{ invoice.number }}">
   <style>
-    @page { size: A4; margin: 18mm 16mm; }
-    body { font-family: "DejaVu Sans", sans-serif; font-size: 9.5pt; color: #111; }
-    h1 { font-size: 15pt; margin: 0 0 2mm 0; }
-    .meta { margin-bottom: 6mm; }
-    .parties { width: 100%; margin-bottom: 6mm; border-collapse: collapse; }
-    .parties td { width: 50%; vertical-align: top; padding: 3mm; border: 0.3pt solid #999; }
-    .parties h2 { font-size: 10pt; margin: 0 0 1.5mm 0; }
-    table.lines, table.vat { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
-    table.lines th, table.lines td, table.vat th, table.vat td {
-      border: 0.3pt solid #999; padding: 1.5mm 2mm; text-align: left;
+    /* Mise en page sobre : une seule couleur d'appui (ardoise), des filets
+       fins, aucune trame lourde. Tout est en tables — WeasyPrint les rend de
+       façon prévisible, et la couche texte extraite reste dans l'ordre de
+       lecture (des tests s'appuient dessus).
+
+       Aucune ressource externe, aucune police web : seule DejaVu Sans est
+       présente dans le conteneur de rendu, et elle doit s'embarquer dans le
+       PDF/A-3b. */
+    @page {
+      size: A4;
+      margin: 16mm 15mm 20mm 15mm;
+      @bottom-right {
+        content: "Page " counter(page) " / " counter(pages);
+        font-family: "DejaVu Sans", sans-serif;
+        font-size: 7.5pt;
+        color: #6b7580;
+      }
     }
-    table.lines th, table.vat th { background: #eee; }
-    .num { text-align: right; }
-    .totals { margin-left: auto; border-collapse: collapse; margin-bottom: 5mm; }
-    .totals td { padding: 1mm 3mm; }
-    .totals .grand { font-weight: bold; }
-    .mention { font-weight: bold; margin: 3mm 0; }
-    .notes { font-size: 8pt; color: #333; margin-top: 6mm; }
+
+    body {
+      font-family: "DejaVu Sans", sans-serif;
+      font-size: 9pt;
+      line-height: 1.45;
+      color: #1f2933;
+    }
+
+    /* --- En-tête : vendeur à gauche, pavé facture à droite --- */
+    .header { width: 100%; border-collapse: collapse; }
+    .header td { vertical-align: top; padding: 0; }
+    .header .seller { width: 58%; padding-right: 8mm; }
+    .header .invoice-box { width: 42%; }
+
+    .seller-name { font-size: 13pt; font-weight: bold; line-height: 1.2; }
+    .seller-form { color: #52606d; }
+    .seller-ids { margin-top: 2mm; color: #3e4c59; }
+    .seller-ids span { display: block; }
+
+    .invoice-box .frame {
+      border: 0.6pt solid #1f2933;
+      padding: 3mm 4mm;
+    }
+    .doc-type {
+      font-size: 8pt;
+      color: #52606d;
+      margin-bottom: 0.5mm;
+    }
+    .doc-number { font-size: 14pt; font-weight: bold; line-height: 1.2; }
+    .doc-dates { width: 100%; border-collapse: collapse; margin-top: 2.5mm; }
+    .doc-dates th {
+      text-align: left;
+      font-weight: normal;
+      color: #52606d;
+      padding: 0.4mm 0;
+      white-space: nowrap;
+    }
+    .doc-dates td { text-align: right; padding: 0.4mm 0; white-space: nowrap; }
+
+    .rule { border-top: 1pt solid #1f2933; margin: 5mm 0 5mm 0; }
+
+    /* --- Bandeau opération / client --- */
+    .blocks { width: 100%; border-collapse: collapse; margin-bottom: 6mm; }
+    .blocks td { vertical-align: top; padding: 0; }
+    .blocks .left { width: 52%; padding-right: 8mm; }
+    .blocks .right { width: 48%; }
+
+    h2 {
+      font-size: 8pt;
+      font-weight: bold;
+      color: #52606d;
+      margin: 0 0 1.5mm 0;
+      border-bottom: 0.4pt solid #cbd2d9;
+      padding-bottom: 1mm;
+    }
+    .buyer-name { font-weight: bold; }
+    .facts { width: 100%; border-collapse: collapse; }
+    .facts th {
+      text-align: left;
+      font-weight: normal;
+      color: #52606d;
+      padding: 0.4mm 3mm 0.4mm 0;
+      vertical-align: top;
+      white-space: nowrap;
+    }
+    .facts td { padding: 0.4mm 0; vertical-align: top; }
+
+    /* --- Tableau des lignes --- */
+    table.lines { width: 100%; border-collapse: collapse; margin-bottom: 6mm; }
+    table.lines thead th {
+      background: #eef1f4;
+      border-top: 0.6pt solid #9aa5b1;
+      border-bottom: 0.6pt solid #9aa5b1;
+      padding: 2mm;
+      text-align: left;
+      font-size: 8pt;
+      color: #1f2933;
+    }
+    table.lines tbody td {
+      border-bottom: 0.3pt solid #d9dee3;
+      padding: 2mm;
+      vertical-align: top;
+    }
+    table.lines tbody tr:nth-child(even) td { background: #fafbfc; }
+    table.lines .designation { width: 46%; }
+    .num { text-align: right; white-space: nowrap; }
+
+    /* --- Ventilation TVA + totaux, côte à côte --- */
+    .summary { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
+    .summary > tbody > tr > td { vertical-align: top; padding: 0; }
+    .summary .vat-cell { width: 52%; padding-right: 8mm; }
+    .summary .totals-cell { width: 48%; }
+
+    table.vat { width: 100%; border-collapse: collapse; }
+    table.vat th {
+      background: #eef1f4;
+      border-top: 0.4pt solid #9aa5b1;
+      border-bottom: 0.4pt solid #9aa5b1;
+      padding: 1.5mm 2mm;
+      text-align: left;
+      font-size: 8pt;
+    }
+    table.vat td { border-bottom: 0.3pt solid #d9dee3; padding: 1.5mm 2mm; }
+
+    table.totals { width: 100%; border-collapse: collapse; }
+    table.totals td { padding: 1.6mm 2mm; }
+    table.totals .label { color: #3e4c59; }
+    table.totals tr.sub td { border-bottom: 0.3pt solid #d9dee3; }
+    table.totals tr.grand td {
+      border-top: 1pt solid #1f2933;
+      border-bottom: 1pt solid #1f2933;
+      background: #eef1f4;
+      font-size: 11pt;
+      font-weight: bold;
+      padding-top: 2.2mm;
+      padding-bottom: 2.2mm;
+    }
+
+    /* Pleine largeur : évite qu'un retour à la ligne coupe la mention
+       (« art. 293 B du CGI ») au milieu. */
+    .mention {
+      border: 0.6pt solid #1f2933;
+      padding: 2.5mm 3mm;
+      font-weight: bold;
+      margin: 0 0 5mm 0;
+    }
+
+    .legal {
+      border-top: 0.4pt solid #cbd2d9;
+      padding-top: 2.5mm;
+      font-size: 7.5pt;
+      color: #3e4c59;
+    }
+    .legal h2 { border: 0; padding: 0; margin-bottom: 1mm; }
+    .legal ul { margin: 0; padding-left: 4mm; }
+    .legal li { margin-bottom: 0.6mm; }
   </style>
 </head>
 <body>
-  <h1>Facture n° {{ invoice.number }}</h1>
-  <div class="meta">
-    Date d'émission : {{ invoice.issue_date.strftime("%d/%m/%Y") }}<br>
-    Date de livraison / prestation :
-      {{ (invoice.supply_date or invoice.issue_date).strftime("%d/%m/%Y") }}<br>
-    {% if invoice.due_date %}Date d'échéance : {{ invoice.due_date.strftime("%d/%m/%Y") }}<br>{% endif %}
-    Catégorie d'opération : {{ operation_label }}<br>
-    {% if invoice.vat_on_debits %}Option TVA acquittée d'après les débits<br>{% endif %}
-    {% if invoice.delivery_address %}Adresse de livraison : {{ invoice.delivery_address }}<br>{% endif %}
-  </div>
 
-  <table class="parties">
+  <table class="header">
     <tr>
-      <td>
-        <h2>Vendeur</h2>
-        {{ invoice.seller_legal_name }} ({{ invoice.seller_legal_form }})<br>
-        {{ invoice.seller_address_line1 }}<br>
-        {% if invoice.seller_address_line2 %}{{ invoice.seller_address_line2 }}<br>{% endif %}
-        {{ invoice.seller_postal_code }} {{ invoice.seller_city }}, {{ invoice.seller_country_code }}<br>
-        SIREN : {{ invoice.seller_siren }}<br>
-        {% if invoice.seller_siret %}SIRET : {{ invoice.seller_siret }}<br>{% endif %}
-        {% if invoice.seller_vat_number %}TVA intracommunautaire : {{ invoice.seller_vat_number }}<br>{% endif %}
+      <td class="seller">
+        <div class="seller-name">{{ invoice.seller_legal_name }}</div>
+        <div class="seller-form">{{ invoice.seller_legal_form }}</div>
+        <div>
+          {{ invoice.seller_address_line1 }}<br>
+          {% if invoice.seller_address_line2 %}{{ invoice.seller_address_line2 }}<br>{% endif %}
+          {{ invoice.seller_postal_code }} {{ invoice.seller_city }} — {{ invoice.seller_country_code }}
+        </div>
+        <div class="seller-ids">
+          <span>SIREN : {{ invoice.seller_siren }}</span>
+          {% if invoice.seller_siret %}<span>SIRET : {{ invoice.seller_siret }}</span>{% endif %}
+          {% if invoice.seller_vat_number %}<span>TVA intracommunautaire : {{ invoice.seller_vat_number }}</span>{% endif %}
+        </div>
       </td>
-      <td>
-        <h2>Acheteur</h2>
-        {{ invoice.buyer_name }}<br>
-        {{ invoice.buyer_address_line1 }}<br>
-        {% if invoice.buyer_address_line2 %}{{ invoice.buyer_address_line2 }}<br>{% endif %}
-        {{ invoice.buyer_postal_code }} {{ invoice.buyer_city }}, {{ invoice.buyer_country_code }}<br>
-        SIREN : {{ invoice.buyer_siren }}<br>
+      <td class="invoice-box">
+        <div class="frame">
+          <div class="doc-type">FACTURE</div>
+          <div class="doc-number">n° {{ invoice.number }}</div>
+          <table class="doc-dates">
+            <tr>
+              <th>Date d'émission</th>
+              <td>{{ invoice.issue_date.strftime("%d/%m/%Y") }}</td>
+            </tr>
+            <tr>
+              <th>Livraison / prestation</th>
+              <td>{{ (invoice.supply_date or invoice.issue_date).strftime("%d/%m/%Y") }}</td>
+            </tr>
+            {% if invoice.due_date %}
+            <tr>
+              <th>Échéance</th>
+              <td>{{ invoice.due_date.strftime("%d/%m/%Y") }}</td>
+            </tr>
+            {% endif %}
+          </table>
+        </div>
+      </td>
+    </tr>
+  </table>
+
+  <div class="rule"></div>
+
+  <table class="blocks">
+    <tr>
+      <td class="left">
+        <h2>Opération</h2>
+        <table class="facts">
+          <tr>
+            <th>Catégorie</th>
+            <td>{{ operation_label }}</td>
+          </tr>
+          {% if invoice.vat_on_debits %}
+          <tr>
+            <th>Option TVA</th>
+            <td>Acquittée d'après les débits</td>
+          </tr>
+          {% endif %}
+          {% if invoice.delivery_address %}
+          <tr>
+            <th>Livraison</th>
+            <td>{{ invoice.delivery_address }}</td>
+          </tr>
+          {% endif %}
+        </table>
+      </td>
+      <td class="right">
+        <h2>Facturé à</h2>
+        <div class="buyer-name">{{ invoice.buyer_name }}</div>
+        <div>
+          {{ invoice.buyer_address_line1 }}<br>
+          {% if invoice.buyer_address_line2 %}{{ invoice.buyer_address_line2 }}<br>{% endif %}
+          {{ invoice.buyer_postal_code }} {{ invoice.buyer_city }} — {{ invoice.buyer_country_code }}
+        </div>
+        <div>SIREN : {{ invoice.buyer_siren }}</div>
       </td>
     </tr>
   </table>
@@ -66,16 +248,19 @@
   <table class="lines">
     <thead>
       <tr>
-        <th>Désignation</th><th class="num">Quantité</th><th class="num">PU HT</th>
-        <th class="num">Taux TVA</th><th class="num">Total HT</th>
+        <th class="designation">Désignation</th>
+        <th class="num">Quantité</th>
+        <th class="num">PU HT</th>
+        <th class="num">Taux TVA</th>
+        <th class="num">Total HT</th>
       </tr>
     </thead>
     <tbody>
       {% for line in invoice.lines %}
       <tr>
-        <td>{{ line.designation }}</td>
-        <td class="num">{{ line.quantity }}</td>
-        <td class="num">{{ line.unit_price_ht }} €</td>
+        <td class="designation">{{ line.designation }}</td>
+        <td class="num">{{ line.quantity | quantite }}</td>
+        <td class="num">{{ line.unit_price_ht | prix }} €</td>
         <td class="num">{% if line.vat_rate is not none %}{{ line.vat_rate }} %{% else %}—{% endif %}</td>
         <td class="num">{{ line.total_ht }} €</td>
       </tr>
@@ -83,31 +268,54 @@
     </tbody>
   </table>
 
-  {% if breakdown %}
-  <table class="vat">
-    <thead><tr><th>Taux TVA</th><th class="num">Base HT</th><th class="num">Montant TVA</th></tr></thead>
-    <tbody>
-      {% for rate, entry in breakdown %}
-      <tr>
-        <td>{{ rate }} %</td>
-        <td class="num">{{ entry["base"] }} €</td>
-        <td class="num">{{ entry["tva"] }} €</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% endif %}
-
-  <table class="totals">
-    <tr><td>Total HT</td><td class="num">{{ invoice.total_ht }} €</td></tr>
-    <tr><td>Total TVA</td><td class="num">{{ invoice.total_tva }} €</td></tr>
-    <tr class="grand"><td>Total TTC</td><td class="num">{{ invoice.total_ttc }} €</td></tr>
+  <table class="summary">
+    <tr>
+      <td class="vat-cell">
+        {% if breakdown %}
+        <h2>Ventilation de la TVA</h2>
+        <table class="vat">
+          <thead>
+            <tr><th>Taux</th><th class="num">Base HT</th><th class="num">Montant TVA</th></tr>
+          </thead>
+          <tbody>
+            {% for rate, entry in breakdown %}
+            <tr>
+              <td>{{ rate }} %</td>
+              <td class="num">{{ entry["base"] }} €</td>
+              <td class="num">{{ entry["tva"] }} €</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </td>
+      <td class="totals-cell">
+        <table class="totals">
+          <tr class="sub">
+            <td class="label">Total HT</td>
+            <td class="num">{{ invoice.total_ht }} €</td>
+          </tr>
+          <tr class="sub">
+            <td class="label">Total TVA</td>
+            <td class="num">{{ invoice.total_tva }} €</td>
+          </tr>
+          <tr class="grand">
+            <td>Total TTC</td>
+            <td class="num">{{ invoice.total_ttc }} €</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
   </table>
 
   {% if invoice.vat_mention %}<p class="mention">{{ invoice.vat_mention }}</p>{% endif %}
 
-  <div class="notes">
-    {% for code, texte in legal_notes %}{{ texte }}<br>{% endfor %}
+  <div class="legal">
+    <h2>Mentions légales</h2>
+    <ul>
+      {% for code, texte in legal_notes %}<li>{{ texte }}</li>{% endfor %}
+    </ul>
   </div>
+
 </body>
 </html>
