@@ -1,15 +1,15 @@
 # epitaxy
 
-SaaS de facturation électronique multi-tenant, conçu pour la conformité à la réforme française de la facturation électronique de septembre 2026. Le projet génère des factures au format Factur-X conforme à la norme EN 16931, gère leur cycle de vie de transmission via une Plateforme Agréée, et tient un journal d'audit inaltérable et vérifiable cryptographiquement.
+Application de facturation électronique multi-tenant, conçue selon le modèle Solution Compatible de la réforme française de la facturation électronique de septembre 2026. Elle génère des factures Factur-X au profil EN 16931, validées XSD, Schematron FR-CTC et PDF/A-3b, modélise le cycle de vie de transmission d'une Plateforme Agréée, et tient un journal d'audit en ajout seul dont toute falsification est détectable par chaînage cryptographique.
 
-Positionnement réglementaire : epitaxy est une Solution Compatible destinée à s'adosser à une Plateforme Agréée, pas une plateforme immatriculée. Statut : projet personnel d'apprentissage, non destiné à la production commerciale. Le connecteur de transmission est aujourd'hui un mock.
+Positionnement réglementaire : epitaxy est une Solution Compatible destinée à s'adosser à une Plateforme Agréée, pas une plateforme immatriculée, et n'a fait l'objet d'aucune attestation de conformité. Statut : projet personnel d'apprentissage, non destiné à la production commerciale. Le connecteur de transmission est un mock : aucune transmission réelle n'a jamais eu lieu.
 
 ## Ce que ce projet démontre
 
 - Isolation multi-tenant stricte au niveau de la base, appliquée et testée, pas seulement filtrée en applicatif.
 - Authentification durcie : hachage argon2, JWT à vérification d'algorithme explicite, rotation des jetons de rafraîchissement avec détection de vol, RBAC.
-- Conformité Factur-X EN 16931 de bout en bout, validée à quatre étages.
-- Journal d'audit inaltérable au runtime et vérifiable par chaînage cryptographique, avec une frontière de garantie explicitement documentée.
+- Génération Factur-X au profil EN 16931 de bout en bout, validée à quatre étages indépendants.
+- Journal d'audit en ajout seul au niveau base, dont la falsification est détectable par chaînage cryptographique, avec une frontière de garantie explicitement documentée.
 - RGPD pris en compte dès la conception, y compris ses tensions avec l'inaltérabilité.
 - Discipline plan avant code sur chaque étape, et une suite de tests centrée sur la sécurité, l'isolation et la concurrence.
 
