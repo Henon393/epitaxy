@@ -33,7 +33,7 @@ La PA est mockée pour l'instant, une vraie sandbox sera branchée en fin de par
 ## Règles de travail
 - Discipline explore, plan, code, commit. Proposer un plan avant d'écrire du code sur les étapes structurantes, et attendre validation.
 - Écrire les tests d'isolation tenant EN PRIORITÉ. Ne pas avancer tant qu'ils ne sont pas verts.
-- La sécurité est le fil rouge, pas une étape finale : secrets jamais en clair, chiffrement au repos, journal d'audit inaltérable, RBAC, MFA, mesures RGPD article 32.
+- La sécurité est le fil rouge, pas une étape finale : secrets jamais en clair, chiffrement au repos, journal d'audit en ajout seul et vérifiable, RBAC, MFA, mesures RGPD article 32.
 - Commits atomiques, messages à l'impératif.
 - Chaque étape est livrée avec ses tests avant de passer à la suivante.
 

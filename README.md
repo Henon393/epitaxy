@@ -10,7 +10,7 @@ Positionnement réglementaire : epitaxy est une Solution Compatible destinée à
 - Authentification durcie : hachage argon2, JWT à vérification d'algorithme explicite, rotation des jetons de rafraîchissement avec détection de vol, RBAC.
 - Génération Factur-X au profil EN 16931 de bout en bout, validée à quatre étages indépendants.
 - Journal d'audit en ajout seul au niveau base, dont la falsification est détectable par chaînage cryptographique, avec une frontière de garantie explicitement documentée.
-- RGPD pris en compte dès la conception, y compris ses tensions avec l'inaltérabilité.
+- RGPD pris en compte dès la conception, y compris ses tensions avec un journal en ajout seul.
 - Discipline plan avant code sur chaque étape, et une suite de tests centrée sur la sécurité, l'isolation et la concurrence.
 
 ## Démarrage rapide
@@ -141,9 +141,9 @@ Le Factur-X produit est validé à quatre niveaux distincts : conformité du con
 
 Hachage argon2, jetons JWT signés avec vérification explicite de l'algorithme au décodage pour fermer la classe des attaques de confusion d'algorithme, protection contre l'énumération de comptes par égalisation du temps de réponse, et rotation des jetons de rafraîchissement avec détection de réutilisation qui révoque toute la lignée de session à la première anomalie. Les secrets de signature sont lus hors de la base et n'ont pas de valeur par défaut.
 
-### Audit inaltérable et vérifiable
+### Audit en ajout seul et vérifiable
 
-Le journal d'audit est inaltérable au runtime grâce au contrôle d'accès, révocation des droits de modification et de suppression pour le rôle applicatif et politiques RLS sans autorisation de mise à jour, et il est vérifiable grâce à un chaînage cryptographique. Chaque entrée porte le hash de la précédente, calculé en HMAC-SHA256 avec une clé tenue hors de la base. Le contrôle d'accès empêche, le chaînage détecte, ce sont deux menaces distinctes. La portée exacte de ce que le dispositif détecte et ne détecte pas est documentée séparément.
+Le journal d'audit est en ajout seul au niveau base grâce au contrôle d'accès, révocation des droits de modification et de suppression pour le rôle applicatif et politiques RLS sans autorisation de mise à jour, et il est vérifiable grâce à un chaînage cryptographique. Chaque entrée porte le hash de la précédente, calculé en HMAC-SHA256 avec une clé tenue hors de la base. Le contrôle d'accès empêche, le chaînage détecte, ce sont deux menaces distinctes. La portée exacte de ce que le dispositif détecte et ne détecte pas est documentée séparément.
 
 ### Cycle de vie de transmission
 
