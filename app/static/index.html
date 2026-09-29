@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>epitaxy — Factures</title>
+<link rel="icon" type="image/svg+xml" href="/static/epitaxy-pastille-sombre.svg">
+<!-- Polices de l'identite visuelle : Instrument Sans pour le texte,
+     IBM Plex Mono pour les chiffres. Le preconnect ouvre la connexion au
+     domaine des fichiers de police avant que la feuille ne les reclame.
+     Si ces requetes echouent, app.css retombe sur les polices systeme
+     declarees dans --police et --police-mono. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&amp;family=Instrument+Sans:wght@400..700&amp;display=swap">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+
+<!-- ================= CONNEXION ================= -->
+<section id="vue-connexion" class="page">
+  <form class="connexion" id="form-connexion">
+    <h2>epitaxy</h2>
+    <p class="sous">Connexion à l'espace de facturation.</p>
+    <div id="erreur-connexion" class="alerte" hidden></div>
+    <div class="champ">
+      <label for="f-tenant">Identifiant du tenant</label>
+      <input id="f-tenant" name="tenant" autocomplete="off" spellcheck="false" required>
+    </div>
+    <div class="champ">
+      <label for="f-email">Adresse e-mail</label>
+      <input id="f-email" name="email" type="email" autocomplete="username" required>
+    </div>
+    <div class="champ">
+      <label for="f-motdepasse">Mot de passe</label>
+      <input id="f-motdepasse" name="motdepasse" type="password" autocomplete="current-password" required>
+    </div>
+    <button class="bouton" type="submit" id="btn-connexion">Se connecter</button>
+  </form>
+</section>
+
+<!-- ================= APPLICATION ================= -->
+<div id="vue-app" hidden>
+  <header class="barre">
+    <div class="page barre-inner">
+      <div class="barre-gauche">
+        <div class="marque">
+          <!-- Le nom « epitaxy » est juste a cote : le logo est decoratif,
+               d'ou alt vide plutot qu'un texte qui doublonnerait. -->
+          <img class="logo" src="/static/epitaxy-logo-eventail.svg" alt="" width="32" height="32">
+          <span>epitaxy</span>
+        </div>
+        <nav class="nav" aria-label="Navigation principale">
+          <button class="nav-lien" type="button" data-vue="tableau" aria-current="page">Tableau de bord</button>
+          <button class="nav-lien" type="button" data-vue="liste">Factures</button>
+        </nav>
+      </div>
+      <button class="bouton" type="button" id="btn-nouvelle">Nouvelle facture</button>
+    </div>
+  </header>
+
+  <main class="page">
+    <!-- ================= TABLEAU DE BORD ================= -->
+    <section id="ecran-tableau">
+      <div class="titre-bloc">
+        <div>
+          <h1>Synthèse de l'activité</h1>
+          <!-- Date calculee a l'affichage depuis l'horloge du poste :
+               aucune donnee utilisateur n'est necessaire ni stockee. -->
+          <p class="date-jour" id="tb-date">&nbsp;</p>
+        </div>
+        <div class="periodes" role="group" aria-label="Période">
+          <button class="periode" type="button" data-periode="30" aria-pressed="false">30 jours</button>
+          <button class="periode" type="button" data-periode="trimestre" aria-pressed="false">Trimestre</button>
+          <button class="periode" type="button" data-periode="annee" aria-pressed="true">Année</button>
+        </div>
+      </div>
+
+      <div id="erreur-tableau" class="alerte" hidden></div>
+
+      <section class="recap" aria-label="Chiffres clés">
+        <div class="carte">
+          <div class="etiquette">Total facturé TTC</div>
+          <div class="valeur" id="tb-facture">—</div>
+          <div class="precision" id="tb-facture-pre">&nbsp;</div>
+        </div>
+        <div class="carte">
+          <div class="etiquette">En attente de paiement</div>
+          <div class="valeur" id="tb-attente">—</div>
+          <div class="precision" id="tb-attente-pre">&nbsp;</div>
+        </div>
+        <div class="carte">
+          <div class="etiquette">Nombre de factures</div>
+          <div class="valeur" id="tb-nombre">—</div>
+          <div class="precision" id="tb-nombre-pre">&nbsp;</div>
+        </div>
+        <div class="carte">
+          <div class="etiquette">Montant encaissé</div>
+          <div class="valeur" id="tb-encaisse">—</div>
+          <div class="precision" id="tb-encaisse-pre">&nbsp;</div>
+        </div>
+      </section>
+
+      <div class="tb-grille">
+        <section class="panneau" aria-labelledby="tb-titre-repartition">
+          <h2 class="panneau-titre" id="tb-titre-repartition">Répartition par statut</h2>
+          <div class="anneau-bloc">
+            <!-- Le dessin est decoratif : la legende porte les chiffres,
+                 donc un lecteur d'ecran obtient les donnees et non une
+                 description de graphique. Le total au centre est pose en
+                 HTML par-dessus le SVG, pour que sa taille s'exprime en
+                 pixels reels et non en unites de dessin mises a l'echelle. -->
+            <div class="anneau-boite">
+              <svg class="anneau" id="tb-anneau" viewBox="0 0 100 100" aria-hidden="true"></svg>
+              <div class="anneau-centre" aria-hidden="true">
+                <span class="anneau-centre-valeur" id="tb-anneau-total">0</span>
+                <span class="anneau-centre-libelle" id="tb-anneau-libelle">FACTURES</span>
+              </div>
+            </div>
+            <ul class="legende" id="tb-legende"></ul>
+          </div>
+        </section>
+
+        <section class="panneau" aria-labelledby="tb-titre-dernieres">
+          <h2 class="panneau-titre" id="tb-titre-dernieres">5 dernières factures</h2>
+          <div class="defilement">
+            <table class="apercu">
+              <thead>
+                <tr>
+                  <th scope="col">Numéro</th>
+                  <th scope="col">Client</th>
+                  <th scope="col" class="montant">Montant TTC</th>
+                  <th scope="col">Statut</th>
+                </tr>
+              </thead>
+              <tbody id="tb-dernieres"></tbody>
+            </table>
+          </div>
+          <div id="tb-dernieres-vide" class="etat" hidden>Aucune facture sur la période</div>
+          <div class="panneau-pied">
+            <button type="button" class="lien-action" id="btn-voir-toutes">Voir toutes les factures</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section id="ecran-liste" hidden>
+    <div class="titre-bloc">
+      <div>
+        <h1>Factures</h1>
+        <p class="compte" id="compte">Chargement…</p>
+      </div>
+    </div>
+
+    <div id="erreur-app" class="alerte" hidden></div>
+    <div id="succes-app" class="succes" hidden></div>
+
+    <section class="recap" aria-label="Récapitulatif">
+      <div class="carte">
+        <div class="etiquette">Total TTC</div>
+        <div class="valeur" id="val-total">—</div>
+        <div class="precision" id="pre-total">&nbsp;</div>
+      </div>
+      <div class="carte">
+        <div class="etiquette">En attente</div>
+        <div class="valeur" id="val-attente">—</div>
+        <div class="precision" id="pre-attente">&nbsp;</div>
+      </div>
+    </section>
+
+    <div class="onglets" role="tablist">
+      <button class="onglet" role="tab" aria-selected="true"  data-onglet="toutes">Toutes <span class="onglet-compte">0</span></button>
+      <button class="onglet" role="tab" aria-selected="false" data-onglet="brouillons">Brouillons <span class="onglet-compte">0</span></button>
+      <button class="onglet" role="tab" aria-selected="false" data-onglet="emises">Émises <span class="onglet-compte">0</span></button>
+      <button class="onglet" role="tab" aria-selected="false" data-onglet="encaissees">Encaissées <span class="onglet-compte">0</span></button>
+      <button class="onglet" role="tab" aria-selected="false" data-onglet="rejetees">Rejetées <span class="onglet-compte">0</span></button>
+    </div>
+
+    <div class="cadre-tableau">
+      <div class="defilement" id="defilement">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Numéro</th>
+              <th scope="col">Client</th>
+              <th scope="col">Date d'émission</th>
+              <th scope="col" class="montant">Montant TTC</th>
+              <th scope="col">Statut</th>
+              <th scope="col" class="pdf">Factur-X</th>
+            </tr>
+          </thead>
+          <tbody id="corps">
+            <tr><td colspan="6" class="etat">Chargement des factures…</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="vide" class="etat" hidden>Aucune facture</div>
+    </div>
+    </section>
+
+    <!-- ================= NOUVELLE FACTURE ================= -->
+    <section id="ecran-formulaire" hidden>
+      <div class="titre-bloc">
+        <div>
+          <h1>Nouvelle facture</h1>
+          <p class="compte">Elle sera créée en brouillon, sans numéro légal.</p>
+        </div>
+        <button type="button" class="bouton bouton-doux" id="btn-annuler">Annuler</button>
+      </div>
+
+      <div id="form-erreurs" class="alerte" hidden></div>
+
+      <form id="form-facture" novalidate>
+        <fieldset class="bloc">
+          <legend>Client et informations</legend>
+          <div class="grille">
+            <div class="champ-form">
+              <div class="ligne-label">
+                <label for="fa-client">Client</label>
+                <button type="button" class="lien-action" id="btn-nouveau-client">Nouveau client</button>
+              </div>
+              <select id="fa-client"></select>
+              <p class="err" id="err-client" hidden></p>
+            </div>
+            <div class="champ-form">
+              <label for="fa-categorie">Catégorie d'opération</label>
+              <select id="fa-categorie">
+                <option value="livraison_de_biens">Vente de biens</option>
+                <option value="prestation_de_services" selected>Prestation de services</option>
+                <option value="mixte">Les deux</option>
+              </select>
+            </div>
+            <div class="champ-form">
+              <label for="fa-livraison">Date de livraison ou prestation</label>
+              <input type="date" id="fa-livraison">
+              <p class="err" id="err-livraison" hidden></p>
+            </div>
+            <div class="champ-form">
+              <label for="fa-echeance">Date d'échéance</label>
+              <input type="date" id="fa-echeance">
+              <p class="err" id="err-echeance" hidden></p>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset class="bloc">
+          <legend>Lignes de la facture</legend>
+          <div class="defilement">
+            <table class="lignes-saisie">
+              <thead>
+                <tr>
+                  <th scope="col">Désignation</th>
+                  <th scope="col" class="col-qte">Quantité</th>
+                  <th scope="col" class="col-pu">Prix unitaire HT</th>
+                  <th scope="col" class="col-tva">TVA</th>
+                  <th scope="col" class="montant">Montant HT</th>
+                  <th scope="col"><span class="sr">Supprimer</span></th>
+                </tr>
+              </thead>
+              <tbody id="lignes-corps"></tbody>
+            </table>
+          </div>
+          <p class="err" id="err-lignes" hidden></p>
+          <button type="button" class="bouton-doux" id="btn-ajouter-ligne">Ajouter une ligne</button>
+        </fieldset>
+
+        <section class="recap" aria-label="Totaux">
+          <div class="carte">
+            <div class="etiquette">Total HT</div>
+            <div class="valeur" id="f-ht">0,00 &euro;</div>
+          </div>
+          <div class="carte">
+            <div class="etiquette">Total TVA</div>
+            <div class="valeur" id="f-tva">0,00 &euro;</div>
+            <div class="precision" id="f-ventilation">&nbsp;</div>
+          </div>
+          <div class="carte">
+            <div class="etiquette">Total TTC</div>
+            <div class="valeur" id="f-ttc">0,00 &euro;</div>
+          </div>
+        </section>
+
+        <div class="actions-form">
+          <button type="submit" class="bouton" id="btn-creer">Créer la facture</button>
+        </div>
+      </form>
+    </section>
+
+    <footer class="pied">
+      <span>Format Factur-X, EN 16931</span>
+      <button type="button" id="btn-deconnexion">Se déconnecter</button>
+    </footer>
+
+    <!-- ================= MODALE : NOUVEAU CLIENT ================= -->
+    <div class="voile" id="voile-client" hidden>
+      <div class="modale" role="dialog" aria-modal="true" aria-labelledby="titre-modale">
+        <h2 id="titre-modale">Nouveau client</h2>
+        <p class="sous">Il sera ajouté au tenant et sélectionné sur la facture en cours.</p>
+
+        <div id="cl-erreurs" class="alerte" hidden></div>
+
+        <form id="form-client" novalidate>
+          <div class="grille">
+            <div class="champ-form pleine-largeur">
+              <label for="cl-nom">Nom ou raison sociale</label>
+              <input id="cl-nom" maxlength="200" autocomplete="off">
+              <p class="err" id="err-cl-nom" hidden></p>
+            </div>
+            <div class="champ-form">
+              <label for="cl-email">Adresse e-mail</label>
+              <input id="cl-email" type="email" autocomplete="off">
+              <p class="err" id="err-cl-email" hidden></p>
+            </div>
+            <div class="champ-form">
+              <label for="cl-siren">SIREN</label>
+              <input id="cl-siren" inputmode="numeric" maxlength="9" placeholder="9 chiffres" autocomplete="off">
+              <p class="err" id="err-cl-siren" hidden></p>
+            </div>
+            <div class="champ-form pleine-largeur">
+              <label for="cl-adresse1">Adresse</label>
+              <input id="cl-adresse1" maxlength="200" autocomplete="off">
+              <p class="err" id="err-cl-adresse1" hidden></p>
+            </div>
+            <div class="champ-form pleine-largeur">
+              <label for="cl-adresse2">Complément d'adresse <span class="facultatif">facultatif</span></label>
+              <input id="cl-adresse2" maxlength="200" autocomplete="off">
+            </div>
+            <div class="champ-form">
+              <label for="cl-cp">Code postal</label>
+              <input id="cl-cp" maxlength="10" autocomplete="off">
+              <p class="err" id="err-cl-cp" hidden></p>
+            </div>
+            <div class="champ-form">
+              <label for="cl-ville">Ville</label>
+              <input id="cl-ville" maxlength="100" autocomplete="off">
+              <p class="err" id="err-cl-ville" hidden></p>
+            </div>
+            <div class="champ-form">
+              <label for="cl-pays">Code pays</label>
+              <input id="cl-pays" maxlength="2" value="FR" autocomplete="off">
+              <p class="err" id="err-cl-pays" hidden></p>
+            </div>
+          </div>
+
+          <div class="actions-modale">
+            <button type="button" class="bouton-doux" id="cl-annuler">Annuler</button>
+            <button type="submit" class="bouton" id="cl-creer">Créer le client</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,3 @@
+# Les scripts shell montés dans les conteneurs Linux doivent rester en LF,
+# même sur un poste Windows.
+*.sh text eol=lf

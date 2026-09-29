@@ -1,0 +1,20 @@
+# Environnement et secrets, jamais commités
+.env
+
+# Répertoire d'échange avec les conteneurs outils (rendu PDF, veraPDF)
+.exchange/
+
+# Sorties du scénario de démonstration
+demo_output/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Éditeurs et outils locaux, réglages propres au poste
+.idea/
+.vscode/

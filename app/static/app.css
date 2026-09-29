@@ -1,0 +1,554 @@
+/* epitaxy - interface web : styles.
+   Extrait de index.html, aucun changement de regle. */
+
+/* --- Identite visuelle, source unique ---------------------------------------
+   Toutes les couleurs, polices, graisses, rayons et ombres du projet sont
+   declarees ici et nulle part ailleurs. Une valeur hexadecimale ecrite
+   directement dans une regle serait une seconde source de verite, qui
+   divergerait de celle-ci a la premiere retouche. */
+:root {
+  /* Fonds. La page est legerement chaude, les cartes legerement froides :
+     c'est ce leger contraste qui detache les blocs du fond. */
+  --fond:          #f4f5f3;
+  --surface:       #f9fbfd;
+  --bandeau:       #ffffff;
+  --survol-ligne:  #f1f5f9;
+
+  /* Bordures et separateurs. Le separateur doux sert aux lignes internes
+     d'un meme bloc, le separateur franc aux limites de tableau. */
+  --bordure:          #e2e7ec;
+  --separateur:       #e8ecf0;
+  --separateur-doux:  #edf0f3;
+
+  /* Textes, trois tons pour trois usages distincts :
+     libelle pour les etiquettes et en-tetes, sous-titre pour les lignes
+     placees sous un titre, secondaire pour les precisions discretes. */
+  --texte:            #16191c;
+  --texte-libelle:    #4b5563;
+  --texte-soustitre:  #6b7280;
+  --texte-secondaire: #7c8279;
+
+  /* Accent. Le texte du bouton n'est pas blanc pur mais casse, pour
+     adoucir le contraste sur le vert profond. */
+  --accent:         #16403a;
+  --accent-survol:  #1f574e;
+  --accent-texte:   #f4f7ee;
+  /* Non fourni par la fiche de style : derive de l'accent, pour que
+     l'anneau de focus cesse d'etre bleu sur une interface verte. */
+  --focus:          #9dbdb4;
+  /* Fonds neutres des pastilles de compteur, egalement derives. */
+  --pastille:       #eceef0;
+  --pastille-active:#dfe6e3;
+
+  /* Polices. Repli systeme complet : la page reste correcte si Google
+     Fonts est injoignable ou bloque. */
+  --police:      "Instrument Sans", "Segoe UI", -apple-system, BlinkMacSystemFont,
+                 Roboto, Helvetica, Arial, sans-serif;
+  /* Chiffres : numeros de facture, montants et compteurs. */
+  --police-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", "Segoe UI Mono",
+                 Consolas, "Liberation Mono", monospace;
+
+  --rayon:         14px;
+  --rayon-bouton:  9px;
+  --rayon-pilule:  999px;
+
+  --ombre: 0 1px 2px rgba(30, 45, 60, 0.04),
+           0 6px 18px rgba(30, 45, 60, 0.05);
+  --ombre-modale:   0 14px 44px rgba(30, 45, 60, 0.18);
+  --ombre-pastille: 0 1px 2px rgba(30, 45, 60, 0.10);
+  /* Voile de la fenetre modale et fond de l'anneau lorsqu'il est vide,
+     tous deux derives de la palette et non fournis par la fiche. */
+  --voile:       rgba(22, 25, 28, 0.32);
+  --anneau-vide: #e7ebf1;
+
+  /* --- Palette des 8 statuts -------------------------------------------
+     Les 8 etats reels du logiciel : 2 portes par la facture (brouillon,
+     emise) et 6 par la transmission (deposee, recue, approuvee, refusee,
+     encaissee, rejetee).
+
+     Quatre teintes par statut. Les trois premieres composent l'etiquette,
+     la quatrieme est reservee au diagramme en anneau : sur un aplat de
+     13 px de large, la teinte de texte serait trop sombre et les huit
+     segments se confondraient. `couleurStatut()` dans app.js lit
+     uniquement la variable « anneau ». */
+  --st-brouillon-fond:   #f0f1f3;
+  --st-brouillon-texte:  #4b5563;
+  --st-brouillon-bord:   #dde0e4;
+  --st-brouillon-anneau: #aab1ba;
+
+  --st-emise-fond:       #eaf0fe;
+  --st-emise-texte:      #1d4ed8;
+  --st-emise-bord:       #cdddfb;
+  --st-emise-anneau:     #5b83e0;
+
+  --st-deposee-fond:     #f1edfb;
+  --st-deposee-texte:    #5b3fb0;
+  --st-deposee-bord:     #ddd3f5;
+  --st-deposee-anneau:   #8c74d0;
+
+  --st-recue-fond:       #e6f4f6;
+  --st-recue-texte:      #0e6a7a;
+  --st-recue-bord:       #c4e4e9;
+  --st-recue-anneau:     #4fa6b4;
+
+  --st-approuvee-fond:   #e8f3ef;
+  --st-approuvee-texte:  #2f6f5e;
+  --st-approuvee-bord:   #cae3da;
+  --st-approuvee-anneau: #6fae98;
+
+  --st-encaissee-fond:   #e7f4ec;
+  --st-encaissee-texte:  #1a6b45;
+  --st-encaissee-bord:   #c7e6d5;
+  --st-encaissee-anneau: #2f8f5c;
+
+  --st-refusee-fond:     #fdf1e6;
+  --st-refusee-texte:    #a4520f;
+  --st-refusee-bord:     #f5dcc3;
+  --st-refusee-anneau:   #d9894a;
+
+  --st-rejetee-fond:     #fdeceb;
+  --st-rejetee-texte:    #b42318;
+  --st-rejetee-bord:     #f7d2cf;
+  --st-rejetee-anneau:   #d0564c;
+}
+
+* { box-sizing: border-box; }
+
+/* Gouttiere de defilement toujours reservee. Sans elle, un ecran assez
+   court pour tenir sans barre de defilement est centre 8 px plus a droite
+   qu'un ecran qui en a une : le contenu sautait lateralement au passage
+   du tableau de bord a la liste. */
+html { scrollbar-gutter: stable; }
+
+body {
+  margin: 0;
+  background: var(--fond);
+  color: var(--texte);
+  font: 14px/1.5 var(--police);
+  -webkit-font-smoothing: antialiased;
+}
+
+.page { max-width: 1140px; margin: 0 auto; padding: 0 20px; }
+
+/* --- En-tête --- */
+header.barre {
+  background: var(--surface);
+  border-bottom: 1px solid var(--bordure);
+}
+.barre-inner {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding-block: 14px;
+}
+.marque { display: flex; align-items: center; gap: 10px; }
+.marque .logo {
+  display: block; flex: none;
+  /* Mesure par rasterisation du SVG : l'encre occupe 57,5 x 80,8 dans
+     un carre de 120, soit 48 % de la largeur et 67 % de la hauteur.
+     A 36 px de boite, cela fait une marque de 17 x 24 px, a l'echelle
+     du nom en 17 px a cote. */
+  width: 36px; height: 36px;
+  /* Elle n'est pas centree verticalement : 24,8 de marge en haut
+     contre 14,5 en bas, soit un centre d'encre 5,2 unites sous le
+     centre de la boite. A 36 px cela vaut 1,56 px, qu'on remonte. */
+  transform: translateY(-1.6px);
+}
+.marque span {
+  font-size: 17px; font-weight: 600; letter-spacing: -0.2px; color: var(--texte);
+}
+.bouton {
+  appearance: none; border: 1px solid var(--accent-survol);
+  background: var(--accent); color: var(--accent-texte);
+  padding: 8px 15px; border-radius: var(--rayon-bouton);
+  font-size: 13.5px; font-weight: 500; font-family: inherit;
+  cursor: pointer; white-space: nowrap;
+}
+.bouton:hover { background: var(--accent-survol); }
+
+/* --- Titre et compteur --- */
+.titre-bloc {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; padding-block: 26px 18px;
+}
+h1 { margin: 0; font-size: 26px; font-weight: 600; letter-spacing: -0.3px; }
+.compte { margin: 4px 0 0; color: var(--texte-soustitre); font-size: 13.5px; }
+
+/* --- Surface commune ------------------------------------------------------
+   Tous les blocs poses sur le fond bleute partagent exactement le meme
+   traitement : meme surface, meme bordure, meme rayon, meme ombre. Les
+   regrouper ici plutot que de repeter les quatre proprietes par composant
+   est ce qui empeche un ecran de deriver visuellement des autres. */
+.carte,
+.bloc,
+.cadre-tableau,
+.panneau {
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  box-shadow: var(--ombre);
+}
+
+/* --- Encadrés récapitulatifs --- */
+.recap { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; }
+.carte {
+  flex: 1 1 220px;
+  padding: 15px 17px;
+}
+.carte .etiquette {
+  color: var(--texte-libelle); font-size: 12px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.carte .valeur {
+  margin-top: 6px; font-size: 30px; font-weight: 600;
+  letter-spacing: -0.5px; font-family: var(--police-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.carte .precision { margin-top: 3px; color: var(--texte-secondaire); font-size: 12.5px; }
+
+/* --- Onglets --- */
+.onglets {
+  display: flex; gap: 2px; border-bottom: 1px solid var(--bordure);
+  margin-bottom: -1px; overflow-x: auto;
+}
+.onglet {
+  appearance: none; background: none; border: 0; border-bottom: 2px solid transparent;
+  padding: 9px 14px; font: inherit; font-size: 13.5px; color: var(--texte-libelle);
+  cursor: pointer; white-space: nowrap;
+}
+.onglet[aria-selected="true"] {
+  color: var(--accent); border-bottom-color: var(--accent); font-weight: 600;
+}
+.onglet-compte {
+  display: inline-block; margin-left: 5px; padding: 0 6px;
+  background: var(--pastille); color: var(--texte-secondaire);
+  border-radius: var(--rayon-pilule); font-size: 11.5px; font-weight: 600;
+  font-family: var(--police-mono); font-variant-numeric: tabular-nums;
+}
+.onglet[aria-selected="true"] .onglet-compte { background: var(--pastille-active); color: var(--accent); }
+
+/* --- Tableau --- */
+.cadre-tableau { overflow: hidden; }
+.defilement { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td {
+  padding: 11px 16px; text-align: left; white-space: nowrap;
+  border-bottom: 1px solid var(--separateur);
+}
+th {
+  background: var(--bandeau); color: var(--texte-libelle);
+  font-size: 11.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--survol-ligne); }
+.num { font-family: var(--police-mono); font-variant-numeric: tabular-nums; }
+.montant {
+  text-align: right; font-family: var(--police-mono);
+  font-variant-numeric: tabular-nums; font-weight: 500;
+}
+th.montant { text-align: right; }
+.client { white-space: normal; min-width: 180px; }
+.vide { color: var(--texte-secondaire); }
+
+/* --- Étiquettes de statut --- */
+.badge {
+  display: inline-block; padding: 3px 9px; border-radius: var(--rayon-pilule);
+  font-size: 12px; font-weight: 500; line-height: 1.45;
+  border: 1px solid transparent;
+}
+/* Les teintes viennent de la palette de :root, jamais d'une valeur ecrite
+   ici : c'est ce qui garantit que la liste et le tableau de bord affichent
+   le meme statut de la meme couleur. */
+.s-brouillon { background:var(--st-brouillon-fond); color:var(--st-brouillon-texte); border-color:var(--st-brouillon-bord); }
+.s-emise     { background:var(--st-emise-fond);     color:var(--st-emise-texte);     border-color:var(--st-emise-bord); }
+.s-deposee   { background:var(--st-deposee-fond);   color:var(--st-deposee-texte);   border-color:var(--st-deposee-bord); }
+.s-recue     { background:var(--st-recue-fond);     color:var(--st-recue-texte);     border-color:var(--st-recue-bord); }
+.s-approuvee { background:var(--st-approuvee-fond); color:var(--st-approuvee-texte); border-color:var(--st-approuvee-bord); }
+.s-encaissee { background:var(--st-encaissee-fond); color:var(--st-encaissee-texte); border-color:var(--st-encaissee-bord); }
+.s-refusee   { background:var(--st-refusee-fond);   color:var(--st-refusee-texte);   border-color:var(--st-refusee-bord); }
+.s-rejetee   { background:var(--st-rejetee-fond);   color:var(--st-rejetee-texte);   border-color:var(--st-rejetee-bord); }
+
+/* --- Tableau de bord ------------------------------------------------------
+   Aucune couleur propre : tout vient des variables de :root, palette de
+   statut comprise. C'est la condition pour que cet ecran soit
+   visuellement indiscernable de la liste et du formulaire. */
+
+/* Navigation entre ecrans, dans l'en-tete. */
+.barre-gauche { display: flex; align-items: center; gap: 26px; min-width: 0; }
+.nav { display: flex; gap: 4px; }
+.nav-lien {
+  appearance: none; background: none; border: 0;
+  padding: 7px 11px; border-radius: var(--rayon-bouton);
+  font: inherit; font-size: 13.5px; font-weight: 500; color: var(--texte-libelle);
+  cursor: pointer; white-space: nowrap;
+}
+.nav-lien:hover { background: var(--pastille); color: var(--texte); }
+.nav-lien[aria-current="page"] { background: var(--pastille-active); color: var(--accent); font-weight: 600; }
+
+/* Date du jour : presente mais effacee, elle ne doit pas concurrencer le
+   titre ni les chiffres. */
+.date-jour { margin: 5px 0 0; color: var(--texte-soustitre); font-size: 13px; }
+
+.panneau { padding: 17px 19px 19px; }
+.panneau-titre {
+  margin: 0 0 16px; font-size: 16px; font-weight: 600; color: var(--texte);
+}
+
+/* Selecteur de periode, groupe segmente. */
+.periodes {
+  display: inline-flex; gap: 2px; padding: 3px;
+  background: var(--pastille); border-radius: var(--rayon-bouton);
+}
+.periode {
+  appearance: none; background: none; border: 0;
+  padding: 6px 13px; border-radius: 4px;
+  font: inherit; font-size: 12.5px; font-weight: 500; color: var(--texte-libelle);
+  cursor: pointer; white-space: nowrap;
+}
+.periode:hover:not([aria-pressed="true"]) { color: var(--texte); }
+.periode[aria-pressed="true"] {
+  background: var(--surface); color: var(--accent); font-weight: 600;
+  box-shadow: var(--ombre-pastille);
+}
+
+/* Deux panneaux cote a cote, empiles sous 860 px. */
+.tb-grille {
+  display: grid; gap: 20px; margin-bottom: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+@media (max-width: 860px) {
+  .tb-grille { grid-template-columns: minmax(0, 1fr); }
+  .anneau-bloc { flex-direction: column; }
+  .legende { width: 100%; flex: none; }
+}
+
+/* Diagramme en anneau. Le SVG est decoratif, la legende porte les
+   chiffres : c'est elle qui rend le contenu accessible. */
+.anneau-bloc { display: flex; align-items: center; gap: 28px; }
+/* Le total est pose en HTML par-dessus le dessin, et non en <text>
+   dans le SVG : le viewBox met le SVG a l'echelle, si bien qu'une
+   taille de police exprimee en unites de dessin ne correspondrait
+   pas aux pixels affiches. En superposition, 34px valent 34px. */
+.anneau-boite { position: relative; flex: none; width: 168px; height: 168px; }
+.anneau { display: block; width: 100%; height: 100%; }
+.anneau-centre {
+  position: absolute; inset: 0; pointer-events: none;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+}
+.anneau-centre-valeur {
+  font-size: 34px; font-weight: 600; color: var(--texte); line-height: 1;
+  font-family: var(--police-mono); font-variant-numeric: tabular-nums;
+}
+.anneau-centre-libelle {
+  font-size: 10.5px; color: var(--texte-secondaire); letter-spacing: 0.5px;
+}
+.legende {
+  flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px;
+  margin: 0; padding: 0; list-style: none;
+}
+.legende li { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; }
+.legende-puce {
+  flex: none; width: 9px; height: 9px; border-radius: 2px;
+  transform: translateY(-1px);
+}
+.legende-nom { color: var(--texte-libelle); }
+/* Les trois valeurs sont alignees en colonnes par des largeurs minimales
+   et des chiffres a chasse fixe : la legende se lit verticalement, statut
+   par statut, sans que les nombres dansent d'une ligne a l'autre. */
+.legende-nombre, .legende-part, .legende-montant {
+  text-align: right; font-family: var(--police-mono);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+.legende-nombre { margin-left: auto; min-width: 20px; color: var(--texte); font-weight: 500; }
+.legende-part { min-width: 34px; color: var(--texte-secondaire); }
+.legende-montant { min-width: 82px; color: var(--texte); font-weight: 500; }
+
+/* Apercu des dernieres factures : tableau sans cadre propre, il est deja
+   dans un panneau. */
+.apercu { width: 100%; border-collapse: collapse; }
+.apercu th {
+  background: none; padding: 0 10px 7px; border-bottom: 1px solid var(--separateur);
+  color: var(--texte-libelle); font-size: 11.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px; text-align: left;
+}
+.apercu td { padding: 9px 10px; border-bottom: 1px solid var(--separateur-doux); }
+.apercu tr:last-child td { border-bottom: 0; }
+.apercu th.montant, .apercu td.montant { text-align: right; }
+.panneau-pied { margin-top: 14px; display: flex; justify-content: flex-end; }
+
+/* --- Lien de telechargement du Factur-X --- */
+th.pdf, td.pdf { text-align: right; width: 1%; }
+.lien-pdf {
+  appearance: none; background: none; border: 0;
+  padding: 2px 7px; border-radius: var(--rayon-bouton);
+  font: inherit; font-size: 12.5px; color: var(--accent);
+  text-decoration: underline; cursor: pointer;
+}
+.lien-pdf:hover:not([disabled]) { background: var(--pastille); }
+.lien-pdf[disabled] {
+  color: var(--texte-secondaire); text-decoration: none;
+  cursor: default; background: none;
+}
+
+/* --- Formulaire de creation --- */
+.bouton-doux {
+  appearance: none; background: var(--surface); color: var(--texte-libelle);
+  border: 1px solid var(--bordure); border-radius: var(--rayon-bouton);
+  padding: 8px 15px; font: inherit; font-size: 13.5px; font-weight: 500;
+  cursor: pointer; white-space: nowrap;
+}
+.bouton-doux:hover { background: var(--pastille); color: var(--texte); }
+
+.bloc { padding: 16px 18px 18px; margin: 0 0 16px; }
+.bloc legend {
+  padding: 0 6px; margin-left: -6px;
+  font-size: 16px; font-weight: 600; color: var(--texte);
+}
+.grille {
+  display: grid; gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+.champ-form label {
+  display: block; margin-bottom: 5px;
+  font-size: 12.5px; font-weight: 500; color: var(--texte-libelle);
+}
+.champ-form input, .champ-form select {
+  width: 100%; padding: 8px 10px; font: inherit; font-size: 13.5px;
+  color: var(--texte); background: var(--bandeau);
+  border: 1px solid var(--bordure); border-radius: var(--rayon-bouton);
+}
+.champ-form input:focus, .champ-form select:focus,
+.lignes-saisie input:focus, .lignes-saisie select:focus {
+  outline: 2px solid var(--focus); outline-offset: -1px; border-color: var(--accent);
+}
+.err { margin: 5px 0 0; font-size: 12.5px; color: var(--st-rejetee-texte); }
+.invalide {
+  border-color: var(--st-rejetee-bord) !important;
+  background: var(--st-rejetee-fond) !important;
+}
+
+/* Tableau de saisie des lignes */
+.lignes-saisie { width: 100%; border-collapse: collapse; }
+.lignes-saisie th {
+  background: none; padding: 0 8px 6px; border-bottom: 1px solid var(--separateur);
+  color: var(--texte-libelle); font-size: 11.5px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.5px; text-align: left;
+}
+.lignes-saisie td { padding: 6px 8px; border-bottom: 1px solid var(--separateur-doux); }
+.lignes-saisie tr:last-child td { border-bottom: 0; }
+.lignes-saisie input, .lignes-saisie select {
+  width: 100%; padding: 7px 9px; font: inherit; font-size: 13.5px;
+  color: var(--texte); background: var(--bandeau);
+  border: 1px solid var(--bordure); border-radius: var(--rayon-bouton);
+}
+.lignes-saisie .col-qte  { width: 110px; }
+.lignes-saisie .col-pu   { width: 150px; }
+.lignes-saisie .col-tva  { width: 110px; }
+.lignes-saisie input.nombre {
+  text-align: right; font-family: var(--police-mono);
+  font-variant-numeric: tabular-nums;
+}
+.lignes-saisie td.montant {
+  text-align: right; font-family: var(--police-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500; white-space: nowrap;
+}
+.lignes-saisie th.montant { text-align: right; }
+.supprimer {
+  appearance: none; background: none; border: 0; cursor: pointer;
+  padding: 4px 8px; border-radius: var(--rayon-bouton);
+  color: var(--texte-secondaire); font: inherit; font-size: 16px; line-height: 1;
+}
+.supprimer:hover { background: var(--st-rejetee-fond); color: var(--st-rejetee-texte); }
+.sr {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap;
+}
+#btn-ajouter-ligne { margin-top: 12px; }
+.actions-form { display: flex; justify-content: flex-end; padding-bottom: 4px; }
+
+.succes {
+  margin-bottom: 16px; padding: 11px 14px;
+  background: var(--st-encaissee-fond); border: 1px solid var(--st-encaissee-bord);
+  color: var(--st-encaissee-texte);
+  border-radius: var(--rayon-bouton); font-size: 13.5px;
+}
+
+/* --- Lien d'action discret (ex. « Nouveau client ») --- */
+.ligne-label { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.lien-action {
+  appearance: none; background: none; border: 0; padding: 0 0 5px;
+  font: inherit; font-size: 12.5px; color: var(--accent);
+  text-decoration: underline; cursor: pointer;
+}
+.lien-action:hover { color: var(--accent-survol); }
+.facultatif { color: var(--texte-secondaire); font-weight: 400; }
+
+/* --- Fenetre modale --- */
+.voile {
+  position: fixed; inset: 0; z-index: 50;
+  background: var(--voile);
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 46px 16px; overflow-y: auto;
+}
+.modale {
+  width: 100%; max-width: 580px;
+  background: var(--surface);
+  border: 1px solid var(--bordure);
+  border-radius: var(--rayon);
+  /* Meme teinte d'ombre que les autres blocs, portee plus loin :
+     la fenetre doit flotter au-dessus, pas se poser comme une carte. */
+  box-shadow: var(--ombre-modale), var(--ombre);
+  padding: 20px 22px 22px;
+}
+.modale h2 { margin: 0 0 4px; font-size: 17px; font-weight: 600; }
+.modale .sous {
+  margin: 0 0 16px; color: var(--texte-soustitre); font-size: 13px;
+}
+.pleine-largeur { grid-column: 1 / -1; }
+.actions-modale { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
+
+/* --- Pied --- */
+footer.pied {
+  display: flex; justify-content: space-between; align-items: center;
+  gap: 12px; flex-wrap: wrap;
+  padding-block: 20px 28px; margin-top: 18px;
+  color: var(--texte-secondaire); font-size: 12.5px;
+}
+footer.pied button {
+  appearance: none; background: none; border: 0; padding: 0;
+  font: inherit; color: var(--texte-secondaire); text-decoration: underline;
+  cursor: pointer;
+}
+
+/* --- États --- */
+.etat { padding: 34px 16px; text-align: center; color: var(--texte-soustitre); }
+.alerte {
+  margin-bottom: 16px; padding: 11px 14px;
+  background: var(--st-rejetee-fond); border: 1px solid var(--st-rejetee-bord);
+  color: var(--st-rejetee-texte);
+  border-radius: var(--rayon-bouton); font-size: 13.5px;
+}
+
+/* --- Connexion --- */
+.connexion {
+  max-width: 400px; margin: 56px auto;
+  background: var(--surface); border: 1px solid var(--bordure);
+  border-radius: var(--rayon); box-shadow: var(--ombre); padding: 26px;
+}
+.connexion h2 { margin: 0 0 4px; font-size: 17px; font-weight: 600; }
+.connexion p.sous { margin: 0 0 18px; color: var(--texte-soustitre); font-size: 13px; }
+.champ { margin-bottom: 13px; }
+.champ label {
+  display: block; margin-bottom: 5px;
+  font-size: 12.5px; font-weight: 500; color: var(--texte-libelle);
+}
+.champ input {
+  width: 100%; padding: 8px 10px; font: inherit; font-size: 13.5px;
+  color: var(--texte); background: var(--bandeau);
+  border: 1px solid var(--bordure); border-radius: var(--rayon-bouton);
+}
+.champ input:focus { outline: 2px solid var(--focus); outline-offset: -1px; border-color: var(--accent); }
+.connexion .bouton { width: 100%; padding: 9px; margin-top: 4px; }
+[hidden] { display: none !important; }
